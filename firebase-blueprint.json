@@ -1,0 +1,113 @@
+{
+  "entities": {
+    "project": {
+      "title": "Project",
+      "description": "Portfolio project item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "number": { "type": "string" },
+        "name": { "type": "string" },
+        "shortDescription": { "type": "string" },
+        "technologies": { "type": "array" },
+        "coverImage": { "type": "string" },
+        "externalUrl": { "type": "string" },
+        "caseStudy": { "type": "boolean" },
+        "published": { "type": "boolean" },
+        "order": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "shortDescription", "published"]
+    },
+    "milestone": {
+      "title": "Milestone",
+      "description": "Trajectory journey step milestone",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "stepNumber": { "type": "string" },
+        "badge": { "type": "string" },
+        "category": { "type": "string" },
+        "date": { "type": "string" },
+        "location": { "type": "string" },
+        "title": { "type": "string" },
+        "shortTitle": { "type": "string" },
+        "headline": { "type": "string" },
+        "description": { "type": "string" },
+        "progress": { "type": "number" },
+        "published": { "type": "boolean" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "stepNumber", "title", "shortTitle", "published"]
+    },
+    "message": {
+      "title": "Contact Message",
+      "description": "Messages sent from contact form",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "projectType": { "type": "string" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "status": { "type": "string", "enum": ["unread", "read", "archived", "replied"] }
+      },
+      "required": ["name", "email", "message", "createdAt"]
+    },
+    "analyticsEvent": {
+      "title": "Analytics Event",
+      "description": "Page view and visitor telemetry event",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string" },
+        "path": { "type": "string" },
+        "referrer": { "type": "string" },
+        "device": { "type": "string" },
+        "browser": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "dateKey": { "type": "string" }
+      },
+      "required": ["type", "path", "timestamp"]
+    },
+    "siteConfig": {
+      "title": "Site Settings",
+      "description": "Global CMS config for the site",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "bio": { "type": "string" },
+        "tagline": { "type": "string" },
+        "contactEmail": { "type": "string" },
+        "cvUrl": { "type": "string" },
+        "availability": { "type": "string" },
+        "socialLinks": { "type": "object" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id"]
+    }
+  },
+  "firestore": {
+    "/projects/{projectId}": {
+      "entity": "project",
+      "description": "Collection of projects displayed on portfolio"
+    },
+    "/milestones/{milestoneId}": {
+      "entity": "milestone",
+      "description": "Collection of trajectory milestones"
+    },
+    "/messages/{messageId}": {
+      "entity": "message",
+      "description": "Contact form submissions"
+    },
+    "/analytics/{eventId}": {
+      "entity": "analyticsEvent",
+      "description": "Visitor stats and page view events"
+    },
+    "/siteConfig/{configId}": {
+      "entity": "siteConfig",
+      "description": "Global site configurations"
+    }
+  }
+}

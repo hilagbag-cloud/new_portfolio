@@ -1,11 +1,37 @@
-<div align="center">
+# Hilarus Portfolio
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+Portfolio personnel de Hilarus Gbagoule — Design × Software × AI.
 
-  <h1>Built with AI Studio</h2>
+Basé sur `HILARUS_PORTFOLIO_CLAUDE_CODE_SPEC.md` (source de vérité du projet).
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## Stack
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+- Next.js 14 (App Router) + TypeScript
+- Tailwind CSS (design tokens dans `src/app/globals.css` + `tailwind.config.ts`)
+- Framer Motion (transitions, micro-interactions)
+- Lucide Icons
 
-</div>
+## Démarrer
+
+```bash
+npm install
+npm run dev
+```
+
+Ouvrir [http://localhost:3000](http://localhost:3000).
+
+## Structure
+
+```text
+src/
+├── app/            # layout, page, styles globaux
+├── components/      # un composant = une responsabilité
+├── data/            # contenu éditorial séparé des composants
+└── lib/             # utilitaires
+```
+
+## État actuel
+
+Phase 1–4 du plan de construction : fondations, hero, projets, journey (roadmap SVG).
+Contenu de type `[PLACEHOLDER]` à remplacer avant publication — voir `src/data/`.
+Pas encore de CMS/DB : les données sont dans `src/data/*.ts`, prévu pour être remplacées plus tard sans changer l'architecture.

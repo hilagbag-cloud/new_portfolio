@@ -1,0 +1,6 @@
+{
+  "name": "Hilarus Gbagoule — Digital Builder",
+  "description": "Design × Software × AI. Hilarus Gbagoule transforme des problèmes réels en expériences numériques, produits et expérimentations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

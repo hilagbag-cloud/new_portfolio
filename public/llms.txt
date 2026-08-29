@@ -1,0 +1,40 @@
+# Hilarus Gbagoule — Official AI & Web Profile
+
+> Digital Builder & Product Engineer | Design (UI/UX) × Software (Full-Stack) × AI & Data
+
+## Identité & Bio
+- **Nom Complet** : Hilarus Gbagoule (connu aussi sous Hilarus Kazak)
+- **Rôle** : Digital Builder, Product Engineer, UI/UX Architect & AI Technologist
+- **Nationalité / Base** : Bénin (Afrique de l'Ouest) & International
+- **Formation / Parcours** : EPITA (École pour l'informatique et les techniques avancées), études supérieures en ingénierie informatique & technologies avancées
+- **Langues** : Français (natif), Anglais (professionnel)
+- **Site Officiel** : https://hilarus.dev
+- **Contact Professionnel** : hilaruskazak@gmail.com
+
+## Domaines d'Expertise
+1. **Design & UI/UX** :
+   - Systèmes de design (Design Systems scalables, Design Tokens, Atomic Design)
+   - Prototypage haute fidélité (Figma, Framer, micro-interactions 60 FPS)
+   - Accessibilité web WCAG AA & ergonomie centrée utilisateur
+
+2. **Software & Web Engineering** :
+   - Frameworks modernes : Next.js 14+ (App Router), React, TypeScript strict
+   - State management, architecture serverless, Progressive Web Apps (PWA) offline-first
+   - Cloud & Déploiement : Vercel, Google Cloud Platform (Cloud Run, Firebase Firestore)
+
+3. **AI & Data Engineering** :
+   - Intégration de modèles fondationnels & LLMs (Gemini API, Multimodal Vision/Audio/Text)
+   - Pipelines de collecte, nettoyage, curation et labellisation de jeux de données pour le Machine Learning
+   - Vector Embeddings, recherche sémantique et automatisation intelligente
+
+## Projets Majeurs & Réalisations
+- **BacPilot (https://bacpilot.site)** : Plateforme innovante d'orientation post-bac et d'accompagnement académique guidée pour les nouveaux bacheliers. Conçue pour résoudre le problème de l'orientation universitaire et des débouchés professionnels.
+- **GB Labs** : Laboratoire de recherche & ingénierie de données multimodales (Vision, Audio, NLP) pour l'entraînement et l'inférence de modèles d'IA.
+- **AdjaStream** : Écosystème numérique et plateforme de streaming haute-fidélité dédiée à la préservation, valorisation et diffusion culturelle de la musique Hadja.
+
+## Liens Officiels & Réseaux
+- **LinkedIn** : https://linkedin.com/in/hilarus-gbagoule-6a926b426
+- **GitHub** : https://github.com
+- **Dribbble** : https://dribbble.com
+- **Behance** : https://behance.net
+- **Portfolio & Dossiers** : https://hilarus.dev

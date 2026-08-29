@@ -1,0 +1,305 @@
+"use client";
+
+import { useState, useRef } from "react";
+import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
+import { ArrowDown, ArrowUpRight, Sparkles, User, Camera, Upload } from "lucide-react";
+import { site } from "@/data/site";
+import { useCmsSiteConfig } from "@/lib/cms-hooks";
+
+export function Hero() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = useReducedMotion();
+  const cmsConfig = useCmsSiteConfig();
+
+  // Photo URL resolution (Firestore CMS override or local/default)
+  const profilePhotoUrl =
+    (cmsConfig as { profileImage?: string })?.profileImage ||
+    site.profileImage ||
+    "/hilarus.png";
+
+  // Mouse coordinate tracker for 3D tilt & spotlight depth
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [tilt, setTilt] = useState({ rotateX: 0, rotateY: 0 });
+
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end start"],
+  });
+
+  const photoParallax = useTransform(scrollYProgress, [0, 1], [0, reducedMotion ? 0 : 50]);
+  const glowOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0.25]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setMousePos({ x, y });
+
+    if (!reducedMotion) {
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      const rotateX = ((y - centerY) / centerY) * -7;
+      const rotateY = ((x - centerX) / centerX) * 7;
+      setTilt({ rotateX, rotateY });
+    }
+  };
+
+  const handleScrollTo = (targetId: string) => {
+    const el = document.getElementById(targetId);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  return (
+    <div id="top" ref={containerRef} onMouseMove={handleMouseMove} className="relative w-full bg-[#080a09] text-text overflow-hidden">
+      {/* =========================================================================
+          HERO STAGE: 3D INTEGRATED SUBJECT & MASSIVE TYPOGRAPHY
+          ========================================================================= */}
+      <section className="relative min-h-[92vh] md:min-h-screen flex flex-col justify-between pt-28 pb-10 md:pt-32 md:pb-14 px-4 sm:px-8 max-w-[1440px] mx-auto">
+        
+        {/* Giant Lime Green Radial Spotlight / Back-Glow */}
+        <motion.div
+          style={{ opacity: glowOpacity }}
+          className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[45%] w-[380px] sm:w-[580px] md:w-[740px] lg:w-[880px] aspect-square rounded-full blur-[100px] sm:blur-[140px] md:blur-[180px]"
+          aria-hidden
+        >
+          <div className="w-full h-full rounded-full bg-gradient-to-b from-[#bcf66a] via-[#84df25] to-[#2c6109] opacity-80" />
+        </motion.div>
+
+        {/* Dynamic interactive cursor spotlight */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-25 transition-opacity duration-300"
+          style={{
+            background: `radial-gradient(600px circle at ${mousePos.x}px ${mousePos.y}px, rgba(168, 243, 90, 0.18), transparent 80%)`,
+          }}
+          aria-hidden
+        />
+
+        {/* Subtle background tech grid */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.025]"
+          style={{
+            backgroundImage: `linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)`,
+            backgroundSize: "40px 40px",
+          }}
+          aria-hidden
+        />
+
+        {/* TOP GREETING */}
+        <div className="relative z-10 text-center w-full flex flex-col items-center">
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            className="mb-2 text-center flex items-center gap-2"
+          >
+            <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />
+            <span className="font-mono text-xs sm:text-sm tracking-widest text-accent uppercase font-semibold">
+              {site.hero.greeting || "HEY — I'M"}
+            </span>
+          </motion.div>
+        </div>
+
+        {/* =========================================================================
+            CENTER STAGE: "HILARUS" + 3D FLOATING CUTOUT + "GBAGOULE"
+            ========================================================================= */}
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center my-2 sm:my-4">
+          
+          {/* Upper Giant Name: HILARUS */}
+          <motion.h1
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+            className="font-display text-[3.2rem] sm:text-7xl md:text-8xl lg:text-[7.6rem] xl:text-[9.2rem] leading-[0.88] tracking-tight uppercase text-white/95 text-center drop-shadow-[0_4px_30px_rgba(0,0,0,0.8)] z-10"
+          >
+            HILARUS
+          </motion.h1>
+
+          {/* 3D FLOATING CUTOUT PORTRAIT (NO BOX / NO CARD) */}
+          <motion.div
+            style={{
+              y: photoParallax,
+              rotateX: tilt.rotateX,
+              rotateY: tilt.rotateY,
+            }}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.9, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="relative -my-6 sm:-my-10 md:-my-14 lg:-my-18 z-20 w-[240px] sm:w-[320px] md:w-[390px] lg:w-[450px] pointer-events-none select-none"
+          >
+            {/* Ambient Lime Rim Light behind portrait */}
+            <div className="absolute inset-0 -inset-x-4 bg-gradient-to-t from-accent/20 via-accent/30 to-transparent blur-2xl rounded-full opacity-60 pointer-events-none" />
+
+            <div className="relative w-full aspect-[3.2/3.8] flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={profilePhotoUrl}
+                alt={site.fullName || "Hilarus Gbagoule — Creative Technologist"}
+                className="w-full h-full object-contain object-bottom portrait-3d-mask portrait-glow-filter transition-transform duration-500"
+                onError={(e) => {
+                  e.currentTarget.src = "/me.jpg";
+                }}
+              />
+            </div>
+          </motion.div>
+
+          {/* Lower Giant Name: GBAGOULE */}
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="font-display text-[3.2rem] sm:text-7xl md:text-8xl lg:text-[7.6rem] xl:text-[9.2rem] leading-[0.88] tracking-tight uppercase text-accent text-center drop-shadow-[0_4px_30px_rgba(0,0,0,0.8)] z-10"
+          >
+            GBAGOULE
+          </motion.h1>
+
+          {/* Social Links Ribbon right under name — styled as interactive pill chips */}
+          <motion.nav
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.35 }}
+            aria-label="Social profiles"
+            className="mt-6 sm:mt-8 flex flex-wrap items-center justify-center gap-2 sm:gap-3 z-30"
+          >
+            {[
+              {
+                id: "dribbble",
+                label: "DRIBBBLE",
+                href: cmsConfig?.socials?.dribbble || "https://dribbble.com",
+              },
+              {
+                id: "behance",
+                label: "BEHANCE",
+                href: cmsConfig?.socials?.behance || "https://behance.net",
+              },
+              {
+                id: "linkedin",
+                label: "LINKEDIN",
+                href: cmsConfig?.socials?.linkedin || "https://linkedin.com/in/hilarus-gbagoule-6a926b426",
+              },
+              {
+                id: "twitter",
+                label: "TWITTER",
+                href: cmsConfig?.socials?.twitter || "https://twitter.com",
+              },
+              {
+                id: "github",
+                label: "GITHUB",
+                href: cmsConfig?.socials?.github || "https://github.com",
+              },
+            ]
+              .filter((item) => Boolean(item.href))
+              .map((social) => (
+                <a
+                  key={social.id}
+                  href={social.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="social-pill-chip focus-ring"
+                >
+                  <span className="dot" aria-hidden="true" />
+                  <span>{social.label}.</span>
+                </a>
+              ))}
+          </motion.nav>
+        </div>
+
+        {/* BOTTOM FLANKING ACTION BUTTONS */}
+        <div className="relative z-30 w-full flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 sm:pt-6">
+          {/* Bottom Left Button: Scroll Down to Projects */}
+          <motion.button
+            type="button"
+            onClick={() => handleScrollTo("selected-work")}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="btn-skew focus-ring w-full sm:w-auto"
+          >
+            <span>{site.hero.ctaPrimary.label || "DÉCOUVRIR MES PROJETS"}</span>
+            <ArrowDown size={15} strokeWidth={2.2} />
+          </motion.button>
+
+          {/* Bottom Right Button: Contact Me */}
+          <motion.button
+            type="button"
+            onClick={() => handleScrollTo("contact")}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="btn-learn-more group focus-ring w-full sm:w-auto"
+          >
+            <span className="circle" aria-hidden="true">
+              <span className="icon arrow"></span>
+            </span>
+            <span className="button-text">
+              {site.hero.ctaSecondary.label || "ME CONTACTER"}
+            </span>
+          </motion.button>
+        </div>
+      </section>
+
+      {/* =========================================================================
+          TRANSITION HERO NARRATIVE (MATCHES LOWER HALF OF REFERENCE: "I AM...")
+          ========================================================================= */}
+      <section className="relative z-10 border-t border-border/80 bg-[#080a09] py-20 md:py-32">
+        <div className="section-shell">
+          <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 items-start">
+            
+            {/* Left Big Typography block: "I AM HILARUS" */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7 }}
+              className="lg:col-span-6"
+            >
+              <div className="eyebrow text-accent mb-4 flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />
+                <span>DIGITAL ARCHITECT & CREATIVE TECHNOLOGIST</span>
+              </div>
+
+              <h2 className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl leading-[0.94] text-text tracking-tight uppercase">
+                <span className="block text-white/95">I AM</span>
+                <span className="block text-accent">HILARUS</span>
+              </h2>
+            </motion.div>
+
+            {/* Right Proposition & Narrative Block */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.15 }}
+              className="lg:col-span-6 space-y-6 lg:pt-4"
+            >
+              <h3 className="font-display text-2xl sm:text-3xl text-white/90 leading-tight uppercase">
+                {site.statement.subheading}
+              </h3>
+
+              <p className="font-mono text-xs sm:text-sm leading-relaxed text-muted uppercase tracking-wider">
+                {site.statement.description}
+              </p>
+
+              <div className="pt-4">
+                <a
+                  href="#contact"
+                  className="btn-learn-more group focus-ring !min-w-[12.5rem]"
+                >
+                  <span className="circle" aria-hidden="true">
+                    <span className="icon arrow"></span>
+                  </span>
+                  <span className="button-text">
+                    {site.statement.cta}
+                  </span>
+                </a>
+              </div>
+            </motion.div>
+
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
