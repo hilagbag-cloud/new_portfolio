@@ -23,6 +23,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { seedInitialCmsData } from "@/lib/cms-seed";
+import { ImageUploader } from "./ImageUploader";
 
 export function SiteSettingsManager() {
   const [activeSubTab, setActiveSubTab] = useState<"seo" | "content" | "dns">("seo");
@@ -380,14 +381,13 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
                     />
                   </div>
 
-                  <div>
-                    <label className="eyebrow mb-1 block text-xs">URL de l&apos;image de partage (OG Image Banner)</label>
-                    <input
-                      type="url"
+                  <div className="pt-2">
+                    <ImageUploader
+                      label="Bannière de Partage Open Graph (OG Image)"
+                      sublabel="Glissez-déposez ou importez votre visuel de partage (format 1200×630 recommandé)."
                       value={ogImage}
-                      onChange={(e) => setOgImage(e.target.value)}
-                      placeholder="https://images.unsplash.com/..."
-                      className="w-full rounded-xl border border-border bg-surface px-4 py-2 text-sm text-text focus-ring"
+                      onChange={(val) => setOgImage(val)}
+                      aspectRatio="16/9"
                     />
                   </div>
                 </div>
@@ -513,30 +513,14 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
             </h3>
           </div>
 
-          <div>
-            <label className="eyebrow mb-1.5 block text-xs">
-              Photo de profil Hero (URL image ou chemin local /me.jpg)
-            </label>
-            <div className="flex gap-3 items-center">
-              <input
-                type="text"
-                value={profileImage}
-                onChange={(e) => setProfileImage(e.target.value)}
-                placeholder="https://... ou /me.jpg"
-                className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text focus-ring"
-              />
-              {profileImage && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={profileImage}
-                  alt="Aperçu"
-                  className="h-10 w-10 shrink-0 rounded-full object-cover border border-accent/40"
-                />
-              )}
-            </div>
-            <p className="mt-1 text-[11px] text-muted">
-              Cette photo sera centrée dans le halo vert de la section Hero principale.
-            </p>
+          <div className="rounded-2xl border border-border/80 bg-surface/40 p-4">
+            <ImageUploader
+              label="Photo de Profil Hero (Halo d'Accueil)"
+              sublabel="Importez votre photo personnelle (format carré ou rond recommandé). Elle sera affichée dans le cercle lumineux du Hero."
+              value={profileImage}
+              onChange={(val) => setProfileImage(val)}
+              aspectRatio="1/1"
+            />
           </div>
 
           <div>

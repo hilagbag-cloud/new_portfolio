@@ -1,30 +1,87 @@
 import { useEffect, useState } from "react";
-import { collection, onSnapshot, doc } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { projects as defaultProjects, type Project } from "@/data/projects";
 import { milestones as defaultMilestones, type Milestone } from "@/data/milestones";
 import { site as defaultSite } from "@/data/site";
-import type { SiteMetadataConfig } from "@/lib/cms-meta";
+import { defaultSiteMetadata, type SiteMetadataConfig } from "@/lib/cms-meta";
+import { seedInitialCmsData } from "./cms-seed";
 
 export type CmsMergedSiteConfig = typeof defaultSite & SiteMetadataConfig;
+
+/**
+ * Merge Firestore projects with default projects:
+ * - If Firestore has custom or edited projects, keep/override them.
+ * - If default projects are not in Firestore, keep them in the list so nothing disappears.
+ */
+function mergeProjects(firestoreList: Project[]): Project[] {
+  const mergedMap = new Map<string, Project>();
+
+  // 1. Put all default projects
+  defaultProjects.forEach((p) => {
+    mergedMap.set(p.id, { ...p });
+  });
+
+  // 2. Overlay Firestore projects (edited or new)
+  firestoreList.forEach((p) => {
+    const existing = mergedMap.get(p.id);
+    mergedMap.set(p.id, { ...existing, ...p });
+  });
+
+  return Array.from(mergedMap.values()).sort((a, b) =>
+    (a.number || "").localeCompare(b.number || "")
+  );
+}
+
+/**
+ * Merge Firestore milestones with default milestones
+ */
+function mergeMilestones(firestoreList: Milestone[]): Milestone[] {
+  const mergedMap = new Map<string, Milestone>();
+
+  defaultMilestones.forEach((m) => {
+    mergedMap.set(m.id, { ...m });
+  });
+
+  firestoreList.forEach((m) => {
+    const existing = mergedMap.get(m.id);
+    mergedMap.set(m.id, { ...existing, ...m });
+  });
+
+  const list = Array.from(mergedMap.values());
+  list.sort((a, b) => (a.progress || 0) - (b.progress || 0));
+  return list;
+}
 
 export function useCmsProjects() {
   const [projectsList, setProjectsList] = useState<Project[]>(defaultProjects);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, "projects"), (snapshot) => {
-      if (!snapshot.empty) {
-        const fetched = snapshot.docs.map((d) => ({
-          ...d.data(),
-          id: d.id,
-        })) as Project[];
-        setProjectsList(fetched);
+    const unsub = onSnapshot(
+      collection(db, "projects"),
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const fetched = snapshot.docs.map((d) => ({
+            ...d.data(),
+            id: d.id,
+          })) as Project[];
+          setProjectsList(mergeProjects(fetched));
+        } else {
+          // If firestore is completely empty, populate with defaults
+          setProjectsList(defaultProjects);
+          seedInitialCmsData(false).catch((err) =>
+            console.warn("Auto-seed error:", err)
+          );
+        }
+        setLoading(false);
+      },
+      (err) => {
+        console.warn("Projects snapshot error:", err);
+        setProjectsList(defaultProjects);
+        setLoading(false);
       }
-      setLoading(false);
-    }, () => {
-      setLoading(false);
-    });
+    );
     return () => unsub();
   }, []);
 
@@ -36,20 +93,26 @@ export function useCmsMilestones() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, "milestones"), (snapshot) => {
-      if (!snapshot.empty) {
-        const fetched = snapshot.docs.map((d) => ({
-          ...d.data(),
-          id: d.id,
-        })) as Milestone[];
-        // Sort by progress or step number
-        fetched.sort((a, b) => (a.progress || 0) - (b.progress || 0));
-        setMilestonesList(fetched);
+    const unsub = onSnapshot(
+      collection(db, "milestones"),
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const fetched = snapshot.docs.map((d) => ({
+            ...d.data(),
+            id: d.id,
+          })) as Milestone[];
+          setMilestonesList(mergeMilestones(fetched));
+        } else {
+          setMilestonesList(defaultMilestones);
+        }
+        setLoading(false);
+      },
+      (err) => {
+        console.warn("Milestones snapshot error:", err);
+        setMilestonesList(defaultMilestones);
+        setLoading(false);
       }
-      setLoading(false);
-    }, () => {
-      setLoading(false);
-    });
+    );
     return () => unsub();
   }, []);
 
@@ -57,21 +120,29 @@ export function useCmsMilestones() {
 }
 
 export function useCmsSiteConfig(): CmsMergedSiteConfig {
-  const [siteConfig, setSiteConfig] = useState<CmsMergedSiteConfig>(defaultSite as CmsMergedSiteConfig);
+  const [siteConfig, setSiteConfig] = useState<CmsMergedSiteConfig>({
+    ...defaultSite,
+    ...defaultSiteMetadata,
+  } as CmsMergedSiteConfig);
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "siteConfig", "global"), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data() as SiteMetadataConfig;
-        setSiteConfig((prev) => ({
-          ...prev,
-          ...data,
-        }));
+    const unsub = onSnapshot(
+      doc(db, "siteConfig", "global"),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data() as SiteMetadataConfig;
+          setSiteConfig((prev) => ({
+            ...prev,
+            ...data,
+          }));
+        }
+      },
+      (err) => {
+        console.warn("SiteConfig snapshot error:", err);
       }
-    });
+    );
     return () => unsub();
   }, []);
 
   return siteConfig;
 }
-

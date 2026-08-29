@@ -19,24 +19,67 @@ import {
   ExternalLink,
   X,
   Sparkles,
+  RefreshCw,
+  AlertTriangle,
+  Image as ImageIcon,
 } from "lucide-react";
+import { ImageUploader } from "./ImageUploader";
+import { seedInitialCmsData } from "@/lib/cms-seed";
+
+function mergeMilestones(firestoreList: Milestone[]): Milestone[] {
+  const mergedMap = new Map<string, Milestone>();
+  initialMilestones.forEach((m) => {
+    mergedMap.set(m.id, { ...m });
+  });
+  firestoreList.forEach((m) => {
+    const existing = mergedMap.get(m.id);
+    mergedMap.set(m.id, { ...existing, ...m });
+  });
+  const list = Array.from(mergedMap.values());
+  list.sort((a, b) => (a.progress || 0) - (b.progress || 0));
+  return list;
+}
 
 export function MilestonesManager() {
   const [milestonesList, setMilestonesList] = useState<Milestone[]>(initialMilestones);
   const [editingMilestone, setEditingMilestone] = useState<Partial<Milestone> | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncSuccess, setSyncSuccess] = useState(false);
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, "milestones"), (snap) => {
-      if (!snap.empty) {
-        const items = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as Milestone[];
-        items.sort((a, b) => (a.progress || 0) - (b.progress || 0));
-        setMilestonesList(items);
+    const unsub = onSnapshot(
+      collection(db, "milestones"),
+      (snap) => {
+        if (!snap.empty) {
+          const items = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as Milestone[];
+          setMilestonesList(mergeMilestones(items));
+        } else {
+          setMilestonesList(initialMilestones);
+        }
+      },
+      (err) => {
+        console.error("Milestones snapshot error:", err);
       }
-    });
+    );
     return () => unsub();
   }, []);
+
+  const handleSyncDefaults = async () => {
+    try {
+      setSyncing(true);
+      await seedInitialCmsData(false);
+      setSyncSuccess(true);
+      setTimeout(() => setSyncSuccess(false), 3000);
+    } catch (err) {
+      console.error("Sync error:", err);
+      alert("Erreur lors de la synchronisation.");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleOpenAdd = () => {
     setEditingMilestone({
@@ -73,11 +116,15 @@ export function MilestonesManager() {
     try {
       setLoading(true);
       const mId = editingMilestone.id || `milestone-${Date.now()}`;
-      await setDoc(doc(db, "milestones", mId), {
-        ...editingMilestone,
-        id: mId,
-        updatedAt: new Date().toISOString(),
-      }, { merge: true });
+      await setDoc(
+        doc(db, "milestones", mId),
+        {
+          ...editingMilestone,
+          id: mId,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
 
       setIsModalOpen(false);
       setEditingMilestone(null);
@@ -89,13 +136,17 @@ export function MilestonesManager() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Voulez-vous vraiment supprimer cette étape ?")) return;
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmId) return;
     try {
-      await deleteDoc(doc(db, "milestones", id));
-      setMilestonesList((prev) => prev.filter((m) => m.id !== id));
+      setLoading(true);
+      await deleteDoc(doc(db, "milestones", deleteConfirmId));
+      setDeleteConfirmId(null);
     } catch (err) {
       console.error("Error deleting milestone:", err);
+      alert("Erreur lors de la suppression.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -103,29 +154,48 @@ export function MilestonesManager() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="font-display text-xl font-bold text-text">
-            Trajectoire & Jalons ({milestonesList.length})
-          </h2>
-          <p className="text-xs text-muted">
-            Pilotez les étapes du parcours, leurs descriptions, photos et métriques.
+          <div className="flex items-center gap-2">
+            <h2 className="font-display text-xl font-bold text-text">
+              Trajectoire & Jalons ({milestonesList.length})
+            </h2>
+            <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-mono text-emerald-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Temps Réel Actif</span>
+            </span>
+          </div>
+          <p className="text-xs text-muted mt-1">
+            Pilotez les étapes du parcours, leurs descriptions, photos importées et métriques en direct.
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleOpenAdd}
-          className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-xs sm:text-sm font-bold text-bg transition-transform hover:scale-105 focus-ring"
-        >
-          <Plus size={16} />
-          <span>Nouvelle Étape</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleSyncDefaults}
+            disabled={syncing}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-surface/70 px-3 py-2 text-xs font-semibold text-text hover:border-accent hover:text-accent transition-colors disabled:opacity-50"
+            title="S'assure que toutes les étapes originelles sont présentes dans Firestore"
+          >
+            <RefreshCw size={13} className={syncing ? "animate-spin text-accent" : ""} />
+            <span>{syncSuccess ? "Synchronisé !" : "Synchroniser la base"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleOpenAdd}
+            className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-xs sm:text-sm font-bold text-bg transition-transform hover:scale-105 focus-ring"
+          >
+            <Plus size={16} />
+            <span>Nouvelle Étape</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {milestonesList.map((m) => (
           <div
             key={m.id}
-            className="flex flex-col justify-between rounded-2xl border border-border/80 bg-surface/60 p-5 space-y-4"
+            className="flex flex-col justify-between rounded-2xl border border-border/80 bg-surface/60 p-5 space-y-4 hover:border-accent/40 transition-colors"
           >
             <div className="space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -171,14 +241,15 @@ export function MilestonesManager() {
                 <button
                   type="button"
                   onClick={() => handleOpenEdit(m)}
-                  className="rounded-lg border border-border p-2 text-text hover:border-accent hover:text-accent"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-text hover:border-accent hover:text-accent transition-colors"
                 >
-                  <Edit2 size={14} />
+                  <Edit2 size={13} />
+                  <span>Éditer</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleDelete(m.id)}
-                  className="rounded-lg border border-border p-2 text-text hover:border-red-500 hover:text-red-400"
+                  onClick={() => setDeleteConfirmId(m.id)}
+                  className="rounded-lg border border-border p-2 text-muted hover:border-red-500 hover:text-red-400 transition-colors"
                 >
                   <Trash2 size={14} />
                 </button>
@@ -188,14 +259,62 @@ export function MilestonesManager() {
         ))}
       </div>
 
+      {/* Delete confirmation modal */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-red-500/40 bg-[#0e110f] p-6 text-text shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-red-400">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10 border border-red-500/30">
+                <AlertTriangle size={20} />
+              </div>
+              <div>
+                <h3 className="font-display text-base font-bold text-text">
+                  Supprimer l&apos;étape de parcours
+                </h3>
+                <p className="text-xs text-muted">Cette action est irréversible.</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-text/80 leading-relaxed font-sans">
+              Êtes-vous sûr de vouloir supprimer cette étape ?
+            </p>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmId(null)}
+                className="rounded-xl border border-border bg-surface px-4 py-2 text-xs font-semibold text-text hover:bg-white/5"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={loading}
+                className="rounded-xl bg-red-500 px-4 py-2 text-xs font-bold text-white hover:bg-red-600 transition-colors"
+              >
+                {loading ? "Suppression..." : "Confirmer la suppression"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Edit modal */}
       {isModalOpen && editingMilestone && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-[#0d110e] p-6 text-text shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="font-display text-lg font-bold text-text">
-                Modifier l&apos;étape de parcours
-              </h3>
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-[#0d110e] p-6 sm:p-8 text-text shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-border pb-4">
+              <div>
+                <h3 className="font-display text-lg font-bold text-text">
+                  {editingMilestone.id && milestonesList.some((m) => m.id === editingMilestone.id)
+                    ? `Modifier : ${editingMilestone.shortTitle || "Étape"}`
+                    : "Nouvelle Étape"}
+                </h3>
+                <p className="text-xs text-muted">
+                  Éditez les détails du parcours et ajoutez des photos de vos réalisations.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
@@ -215,7 +334,7 @@ export function MilestonesManager() {
                     onChange={(e) =>
                       setEditingMilestone({ ...editingMilestone, stepNumber: e.target.value })
                     }
-                    className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text focus-ring"
+                    className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-sm text-text focus-ring font-mono"
                   />
                 </div>
                 <div>
@@ -226,7 +345,7 @@ export function MilestonesManager() {
                     onChange={(e) =>
                       setEditingMilestone({ ...editingMilestone, badge: e.target.value })
                     }
-                    className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text focus-ring"
+                    className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-sm text-text focus-ring"
                   />
                 </div>
                 <div>
@@ -237,7 +356,7 @@ export function MilestonesManager() {
                     onChange={(e) =>
                       setEditingMilestone({ ...editingMilestone, date: e.target.value })
                     }
-                    className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text focus-ring"
+                    className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-sm text-text focus-ring font-mono"
                   />
                 </div>
               </div>
@@ -252,7 +371,8 @@ export function MilestonesManager() {
                     onChange={(e) =>
                       setEditingMilestone({ ...editingMilestone, shortTitle: e.target.value })
                     }
-                    className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text focus-ring"
+                    placeholder="BACCALAURÉAT"
+                    className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-sm text-text focus-ring"
                   />
                 </div>
                 <div>
@@ -264,7 +384,8 @@ export function MilestonesManager() {
                     onChange={(e) =>
                       setEditingMilestone({ ...editingMilestone, title: e.target.value })
                     }
-                    className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text focus-ring"
+                    placeholder="Baccalauréat Scientifique & Déclic Numérique"
+                    className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-sm text-text focus-ring"
                   />
                 </div>
               </div>
@@ -277,7 +398,8 @@ export function MilestonesManager() {
                   onChange={(e) =>
                     setEditingMilestone({ ...editingMilestone, headline: e.target.value })
                   }
-                  className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text focus-ring"
+                  placeholder="La naissance d'une curiosité sans limite..."
+                  className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-sm text-text focus-ring"
                 />
               </div>
 
@@ -289,7 +411,28 @@ export function MilestonesManager() {
                   onChange={(e) =>
                     setEditingMilestone({ ...editingMilestone, description: e.target.value })
                   }
-                  className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text focus-ring"
+                  placeholder="Synthèse affichée sur la chronologie principale."
+                  className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-sm text-text focus-ring leading-relaxed"
+                />
+              </div>
+
+              <div>
+                <label className="eyebrow mb-1 block text-xs">
+                  Technologies / Mots-clés (séparés par virgules)
+                </label>
+                <input
+                  type="text"
+                  value={editingMilestone.technologies?.join(", ") || ""}
+                  onChange={(e) =>
+                    setEditingMilestone({
+                      ...editingMilestone,
+                      technologies: e.target.value
+                        .split(",")
+                        .map((t) => t.trim())
+                        .filter(Boolean),
+                    })
+                  }
+                  className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-sm text-text focus-ring font-mono"
                 />
               </div>
 
@@ -304,9 +447,10 @@ export function MilestonesManager() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="rounded-xl bg-accent px-5 py-2 text-xs font-bold text-bg hover:scale-105 transition-transform disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-2.5 text-xs font-bold text-bg hover:scale-105 transition-transform disabled:opacity-50"
                 >
-                  {loading ? "Enregistrement..." : "Sauvegarder l'étape"}
+                  {loading && <RefreshCw size={14} className="animate-spin" />}
+                  <span>{loading ? "Sauvegarde..." : "Sauvegarder l'étape"}</span>
                 </button>
               </div>
             </form>

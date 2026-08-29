@@ -87,14 +87,23 @@ export function ProjectCard({
               /* --- IMAGE PREVIEW MODE --- */
               <div className="space-y-3">
                 <div className="relative aspect-[16/10] w-full overflow-hidden rounded-xl border border-accent/30 bg-black/60 shadow-lg group/preview">
-                  <Image
-                    src={project.previewImage}
-                    alt={`Aperçu du site ${project.name}`}
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover/preview:scale-105"
-                    sizes="(max-width: 768px) 100vw, 400px"
-                    referrerPolicy="no-referrer"
-                  />
+                  {project.previewImage.startsWith("data:") ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={project.previewImage}
+                      alt={`Aperçu du site ${project.name}`}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover/preview:scale-105"
+                    />
+                  ) : (
+                    <Image
+                      src={project.previewImage}
+                      alt={`Aperçu du site ${project.name}`}
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover/preview:scale-105"
+                      sizes="(max-width: 768px) 100vw, 400px"
+                      referrerPolicy="no-referrer"
+                    />
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                   <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
                     <span className="text-[11px] font-mono text-accent font-semibold px-2 py-0.5 rounded bg-black/80 border border-accent/30">
