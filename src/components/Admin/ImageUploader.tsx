@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, ChangeEvent, DragEvent } from "react";
-import { UploadCloud, Image as ImageIcon, X, Check, Link as LinkIcon, Sparkles } from "lucide-react";
+import { UploadCloud, Image as ImageIcon, X, Check, Link as LinkIcon, Sparkles, Sliders, Crop } from "lucide-react";
+import { HeroImageStudioModal } from "./HeroImageStudioModal";
 
 interface ImageUploaderProps {
   label: string;
@@ -10,6 +11,7 @@ interface ImageUploaderProps {
   onChange: (dataUrlOrUrl: string) => void;
   aspectRatio?: "16/9" | "4/3" | "1/1" | "auto";
   placeholder?: string;
+  showCropTool?: boolean;
 }
 
 /**
@@ -74,11 +76,13 @@ export function ImageUploader({
   onChange,
   aspectRatio = "16/9",
   placeholder,
+  showCropTool = false,
 }: ImageUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlDraft, setUrlDraft] = useState("");
+  const [showCropModal, setShowCropModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileProcess = async (file: File) => {
@@ -213,11 +217,23 @@ export function ImageUploader({
             />
 
             {/* Overlay buttons on hover */}
-            <div className="absolute inset-0 flex items-center justify-center gap-3 bg-black/60 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
+            <div className="absolute inset-0 flex flex-wrap items-center justify-center gap-2.5 bg-black/70 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 p-2">
+              {showCropTool && (
+                <button
+                  type="button"
+                  onClick={() => setShowCropModal(true)}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-xs font-bold text-bg shadow-md transition-transform hover:scale-105"
+                  title="Ouvrir le studio de recadrage et zoom"
+                >
+                  <Crop size={14} />
+                  <span>Recadrer & Zoomer</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-3.5 py-2 text-xs font-bold text-bg shadow-md transition-transform hover:scale-105"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-surface/90 px-3 py-2 text-xs font-bold text-text shadow-md transition-transform hover:scale-105 hover:border-accent/40"
               >
                 <UploadCloud size={14} />
                 <span>Remplacer</span>
@@ -226,7 +242,7 @@ export function ImageUploader({
               <button
                 type="button"
                 onClick={handleRemove}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/50 bg-red-500/20 px-3.5 py-2 text-xs font-bold text-red-300 backdrop-blur-md hover:bg-red-500/40"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/50 bg-red-500/20 px-3 py-2 text-xs font-bold text-red-300 backdrop-blur-md hover:bg-red-500/40"
               >
                 <X size={14} />
                 <span>Supprimer</span>
@@ -239,13 +255,25 @@ export function ImageUploader({
               <Check size={12} />
               <span>Média enregistré</span>
             </span>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="text-muted hover:text-text underline"
-            >
-              Changer de fichier
-            </button>
+            <div className="flex items-center gap-3">
+              {showCropTool && (
+                <button
+                  type="button"
+                  onClick={() => setShowCropModal(true)}
+                  className="text-accent hover:underline flex items-center gap-1 font-semibold"
+                >
+                  <Crop size={11} />
+                  <span>Ajuster le cadrage</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="text-muted hover:text-text underline"
+              >
+                Changer de fichier
+              </button>
+            </div>
           </div>
         </div>
       ) : (
@@ -283,6 +311,17 @@ export function ImageUploader({
             </p>
           </div>
         </div>
+      )}
+
+      {showCropTool && showCropModal && value && (
+        <HeroImageStudioModal
+          isOpen={showCropModal}
+          onClose={() => setShowCropModal(false)}
+          imageUrl={value}
+          onSave={(croppedData) => {
+            onChange(croppedData);
+          }}
+        />
       )}
     </div>
   );

@@ -53,7 +53,7 @@ export function Hero() {
   };
 
   return (
-    <div id="top" ref={containerRef} onMouseMove={handleMouseMove} className="relative w-full bg-[#080a09] text-text overflow-hidden">
+    <div id="top" ref={containerRef} onMouseMove={handleMouseMove} className="relative w-full bg-bg text-text overflow-hidden transition-colors">
       {/* =========================================================================
           HERO STAGE: 3D INTEGRATED SUBJECT & MASSIVE TYPOGRAPHY
           ========================================================================= */}
@@ -112,7 +112,7 @@ export function Hero() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            className="font-display text-[3.2rem] sm:text-7xl md:text-8xl lg:text-[7.6rem] xl:text-[9.2rem] leading-[0.88] tracking-tight uppercase text-white/95 text-center drop-shadow-[0_4px_30px_rgba(0,0,0,0.8)] z-10"
+            className="font-display text-[clamp(2.5rem,10.5vw,9.2rem)] leading-[0.9] tracking-tight uppercase text-text text-center drop-shadow-sm z-10 w-full max-w-full px-2"
           >
             HILARUS
           </motion.h1>
@@ -127,7 +127,7 @@ export function Hero() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.9, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="relative -my-6 sm:-my-10 md:-my-14 lg:-my-18 z-20 w-[240px] sm:w-[320px] md:w-[390px] lg:w-[450px] pointer-events-none select-none"
+            className="relative -my-6 sm:-my-10 md:-my-14 lg:-my-18 z-20 w-[clamp(190px,52vw,450px)] max-w-full pointer-events-none select-none"
           >
             {/* Ambient Lime Rim Light behind portrait */}
             <div className="absolute inset-0 -inset-x-4 bg-gradient-to-t from-accent/20 via-accent/30 to-transparent blur-2xl rounded-full opacity-60 pointer-events-none" />
@@ -150,7 +150,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="font-display text-[3.2rem] sm:text-7xl md:text-8xl lg:text-[7.6rem] xl:text-[9.2rem] leading-[0.88] tracking-tight uppercase text-accent text-center drop-shadow-[0_4px_30px_rgba(0,0,0,0.8)] z-10"
+            className="font-display text-[clamp(2.5rem,10.5vw,9.2rem)] leading-[0.9] tracking-tight uppercase text-accent text-center drop-shadow-[0_4px_30px_rgba(0,0,0,0.8)] z-10 w-full max-w-full px-2"
           >
             GBAGOULE
           </motion.h1>

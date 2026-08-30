@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suez_One, Inter, IBM_Plex_Mono } from "next/font/google";
 import { AuthProvider } from "@/lib/auth-context";
+import { ThemeProvider } from "@/lib/theme-context";
 import { AnalyticsTracker } from "@/components/Analytics/AnalyticsTracker";
 import {
   getDynamicSiteMetadata,
@@ -43,8 +44,27 @@ export default async function RootLayout({
   const jsonLd = buildJsonLdSchema(dynamicConfig);
 
   return (
-    <html lang="fr" className={`${suezOne.variable} ${inter.variable} ${ibmPlexMono.variable}`}>
+    <html lang="fr" className={`${suezOne.variable} ${inter.variable} ${ibmPlexMono.variable}`} suppressHydrationWarning>
       <head>
+        {/* Anti-FOUC Theme Script */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var saved = localStorage.getItem('hilarus_theme');
+                  if (saved === 'light') {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                    document.documentElement.classList.add('light');
+                  } else {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    document.documentElement.classList.add('dark');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
         {/* Structured Data Graph for Search Engines & AI Agents */}
         <script
           type="application/ld+json"
@@ -53,8 +73,10 @@ export default async function RootLayout({
       </head>
       <body className="font-body antialiased selection:bg-accent selection:text-bg">
         <AuthProvider>
-          <AnalyticsTracker />
-          {children}
+          <ThemeProvider>
+            <AnalyticsTracker />
+            {children}
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>

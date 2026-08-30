@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpRight, Menu, X, Sparkles } from "lucide-react";
 import { site } from "@/data/site";
 import { cn } from "@/lib/cn";
+import { ThemeToggle } from "@/components/Theme/ThemeToggle";
 
 export function Navigation() {
   const [scrolled, setScrolled] = useState(false);
@@ -127,12 +128,17 @@ export function Navigation() {
                   visible: { opacity: 1, x: 0 },
                 }}
                 transition={{ duration: 0.3 }}
-                className="pt-6"
+                className="pt-6 flex flex-col gap-4"
               >
+                <div className="flex items-center gap-2">
+                  <span className="eyebrow text-xs text-muted">Thème :</span>
+                  <ThemeToggle variant="compact" />
+                </div>
+
                 <a
                   href={site.nav.contact.href}
                   onClick={handleLinkClick}
-                  className="inline-flex items-center gap-2 rounded-btn bg-accent px-6 py-3 eyebrow text-bg font-bold focus-ring shadow-lg"
+                  className="inline-flex items-center justify-center gap-2 rounded-btn bg-accent px-6 py-3 eyebrow text-bg font-bold focus-ring shadow-lg"
                 >
                   CONTACTER
                   <ArrowUpRight size={14} strokeWidth={2} />

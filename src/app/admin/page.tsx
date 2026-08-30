@@ -9,6 +9,7 @@ import { ProjectsManager } from "@/components/Admin/ProjectsManager";
 import { MilestonesManager } from "@/components/Admin/MilestonesManager";
 import { MessagesManager } from "@/components/Admin/MessagesManager";
 import { SiteSettingsManager } from "@/components/Admin/SiteSettingsManager";
+import { ThemeToggle } from "@/components/Theme/ThemeToggle";
 import {
   BarChart3,
   FolderKanban,
@@ -30,7 +31,7 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#070908] text-text">
+      <div className="flex min-h-screen items-center justify-center bg-bg text-text">
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
           <span className="font-mono text-xs text-muted">Chargement de la session...</span>
@@ -53,9 +54,9 @@ export default function AdminPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#070908] text-text flex flex-col">
+    <div className="min-h-screen bg-bg text-text flex flex-col transition-colors">
       {/* Top Admin Navbar */}
-      <header className="sticky top-0 z-40 border-b border-border/80 bg-[#0d110e]/95 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-border bg-surface/90 backdrop-blur-md transition-colors">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-accent/40 bg-accent/10 text-accent">
@@ -76,11 +77,14 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Quick Theme Switcher for Admin */}
+            <ThemeToggle variant="compact" />
+
             <Link
               href="/"
               target="_blank"
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-1.5 text-xs text-text hover:border-accent hover:text-accent transition-colors"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-1.5 text-xs text-text hover:border-accent hover:text-accent transition-colors shadow-sm"
             >
               <span>Voir le Portfolio</span>
               <ExternalLink size={13} />

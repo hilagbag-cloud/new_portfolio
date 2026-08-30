@@ -75,7 +75,7 @@ export function Expertise() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
               transition={{ duration: 0.35, delay: index * 0.08 }}
-              className="group relative flex flex-col justify-between rounded-2xl border border-white/10 bg-[#0d120e]/90 p-6 sm:p-7 transition-all duration-300 hover:border-accent/50 hover:bg-[#121913] hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(0,0,0,0.6),0_0_20px_rgba(168,243,90,0.08)]"
+              className="group relative flex flex-col justify-between rounded-2xl border border-border bg-surface/90 p-6 sm:p-7 transition-all duration-300 hover:border-accent/60 hover:bg-surface hover:-translate-y-1 shadow-sm"
             >
               <div className="space-y-4">
                 {/* Header: Number & Category Icon */}
