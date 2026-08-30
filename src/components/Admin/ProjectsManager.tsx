@@ -32,6 +32,8 @@ import {
   Eye,
   RefreshCw,
   AlertTriangle,
+  DownloadCloud,
+  FolderArchive,
 } from "lucide-react";
 import { ImageUploader } from "./ImageUploader";
 import { seedInitialCmsData } from "@/lib/cms-seed";
@@ -58,6 +60,7 @@ export function ProjectsManager() {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<"all" | "published" | "draft">("all");
 
   useEffect(() => {
     const unsub = onSnapshot(
@@ -90,6 +93,15 @@ export function ProjectsManager() {
       setSyncing(false);
     }
   };
+
+  const publishedCount = projectsList.filter((p) => p.published).length;
+  const draftCount = projectsList.filter((p) => !p.published).length;
+
+  const filteredProjects = projectsList.filter((p) => {
+    if (statusFilter === "published") return p.published;
+    if (statusFilter === "draft") return !p.published;
+    return true;
+  });
 
   const handleOpenAdd = (templateType: ProjectCategory = "software") => {
     const nextNum = String(projectsList.length + 1).padStart(2, "0");
@@ -293,9 +305,55 @@ export function ProjectsManager() {
         </div>
       </div>
 
+      {/* Filter and Scraped Blog Status Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
+        <div className="flex items-center gap-1.5 p-1 bg-surface/80 rounded-xl border border-border/80 w-fit">
+          <button
+            type="button"
+            onClick={() => setStatusFilter("all")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              statusFilter === "all"
+                ? "bg-accent text-bg font-bold shadow-sm"
+                : "text-muted hover:text-text"
+            }`}
+          >
+            Tous ({projectsList.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter("published")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              statusFilter === "published"
+                ? "bg-accent text-bg font-bold shadow-sm"
+                : "text-muted hover:text-text"
+            }`}
+          >
+            Publiés ({publishedCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter("draft")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              statusFilter === "draft"
+                ? "bg-accent text-bg font-bold shadow-sm"
+                : "text-muted hover:text-text"
+            }`}
+          >
+            Brouillons ({draftCount})
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-muted">
+          <span className="inline-flex items-center gap-1.5 rounded-lg border border-accent/20 bg-accent/5 px-2.5 py-1 text-[11px] font-mono text-accent">
+            <DownloadCloud size={13} />
+            <span>11 projets scrapés depuis hilarusblog.vercel.app</span>
+          </span>
+        </div>
+      </div>
+
       {/* Projects Grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {projectsList.map((proj) => (
+        {filteredProjects.map((proj) => (
           <div
             key={proj.id}
             className={`flex flex-col justify-between rounded-2xl border p-5 transition-all ${

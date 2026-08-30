@@ -15,6 +15,18 @@ const nextConfig = {
         port: "",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "hilarusblog.vercel.app",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "melx7078-hub.github.io",
+        port: "",
+        pathname: "/**",
+      },
     ],
   },
 };
