@@ -14,7 +14,7 @@ export function SelectedWork() {
   }
 
   return (
-    <section id="selected-work" className="section-shell py-24 md:py-32 relative">
+    <section id="selected-work" className="section-shell py-24 md:py-32 relative overflow-hidden">
       {/* Background ambient subtle glow */}
       <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-accent/5 rounded-full blur-[140px]" />
 
@@ -42,7 +42,7 @@ export function SelectedWork() {
       </div>
 
       {/* 3-COLUMN RESPONSIVE GRID OF 3D BOOK CARDS */}
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 w-full max-w-full">
         {published.map((project, index) => (
           <motion.div
             key={project.id}

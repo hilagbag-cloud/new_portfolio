@@ -337,7 +337,7 @@ export function Journey() {
     <section
       id="journey"
       ref={sectionRef}
-      className="relative bg-bg py-16 sm:py-20 lg:py-0 lg:h-[300vh] transition-colors"
+      className="relative bg-bg py-16 sm:py-20 lg:py-0 lg:h-[300vh] transition-colors overflow-hidden w-full max-w-full"
     >
       {/* Container: Native Fluid Flow on Mobile (< lg) and Sticky Full-Screen on Desktop (>= lg) */}
       <div className="lg:sticky lg:top-0 flex min-h-screen w-full flex-col justify-center overflow-hidden py-4 sm:py-8 lg:py-12">
@@ -399,7 +399,7 @@ export function Journey() {
             </div>
 
             {/* Mobile Dedicated Vertical / Semi-Vertical Organic Roadmap (< lg) */}
-            <div className="block lg:hidden">
+            <div className="block lg:hidden w-full overflow-hidden">
               <MobileVerticalRoadmap
                 activeIndex={computedActiveIndex}
                 milestonesList={published}
@@ -408,7 +408,7 @@ export function Journey() {
             </div>
 
             {/* Interactive Step Tabs Bar */}
-            <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none">
+            <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none w-full max-w-full">
               {published.map((m, idx) => {
                 const isActive = idx === computedActiveIndex;
                 return (

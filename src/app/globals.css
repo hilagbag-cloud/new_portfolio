@@ -37,13 +37,17 @@ html.light {
 html {
   scroll-behavior: smooth;
   transition: background-color 0.3s ease, color 0.3s ease;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 body {
   background-color: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-inter), sans-serif;
-  overflow-x: clip;
+  overflow-x: hidden;
+  position: relative;
   width: 100%;
   max-width: 100vw;
   -webkit-tap-highlight-color: transparent;
@@ -93,25 +97,25 @@ body {
 }
 
 .section-shell {
-  width: min(100% - 2rem, 1360px);
+  width: 100%;
+  max-width: 1360px;
   margin-inline: auto;
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  box-sizing: border-box;
 }
 
 @media (min-width: 640px) {
   .section-shell {
-    width: min(100% - 3rem, 1360px);
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
   }
 }
 
 @media (min-width: 1024px) {
   .section-shell {
-    width: min(100% - 4rem, 1360px);
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
+    padding-left: 2rem;
+    padding-right: 2rem;
   }
 }
 
@@ -264,7 +268,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.85rem 1.75rem;
+  padding: 0.75rem 1.25rem;
   background: var(--color-surface);
   color: var(--color-text);
   border: 1px solid var(--color-border);
@@ -277,6 +281,14 @@ body {
   cursor: pointer;
   transition: color 0.35s ease, border-color 0.35s ease, transform 0.25s ease, box-shadow 0.35s ease;
   white-space: nowrap;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .btn-skew {
+    padding: 0.85rem 1.75rem;
+  }
 }
 
 .btn-skew:after {
@@ -329,7 +341,9 @@ body {
 
 @media (max-width: 640px) {
   .book-project-card {
-    min-height: 370px;
+    min-height: 360px;
+    perspective: 1200px;
+    contain: layout paint;
   }
 }
 
@@ -356,8 +370,8 @@ body {
 
 @media (max-width: 640px) {
   .book-project-card .book-interior {
-    min-height: 370px;
-    padding: 1.25rem;
+    min-height: 360px;
+    padding: 1.15rem;
   }
 }
 
@@ -386,7 +400,7 @@ body {
 
 @media (max-width: 640px) {
   .book-project-card .book-cover {
-    padding: 1.25rem;
+    padding: 1.15rem;
   }
 }
 
@@ -415,7 +429,7 @@ body {
 @media (max-width: 768px) {
   .book-project-card:hover .book-cover,
   .book-project-card.is-open .book-cover {
-    transform: rotateY(-74deg);
+    transform: rotateY(-64deg);
   }
 }
 

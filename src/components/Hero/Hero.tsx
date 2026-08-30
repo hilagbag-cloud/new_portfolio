@@ -57,12 +57,12 @@ export function Hero() {
       {/* =========================================================================
           HERO STAGE: 3D INTEGRATED SUBJECT & MASSIVE TYPOGRAPHY
           ========================================================================= */}
-      <section className="relative min-h-[92vh] md:min-h-screen flex flex-col justify-between pt-28 pb-10 md:pt-32 md:pb-14 px-4 sm:px-8 max-w-[1440px] mx-auto">
+      <section className="relative min-h-[92vh] md:min-h-screen flex flex-col justify-between pt-28 pb-10 md:pt-32 md:pb-14 px-4 sm:px-8 max-w-[1440px] w-full mx-auto overflow-hidden">
         
         {/* Giant Lime Green Radial Spotlight / Back-Glow */}
         <motion.div
           style={{ opacity: glowOpacity }}
-          className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[45%] w-[380px] sm:w-[580px] md:w-[740px] lg:w-[880px] aspect-square rounded-full blur-[100px] sm:blur-[140px] md:blur-[180px]"
+          className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[45%] w-[300px] sm:w-[580px] md:w-[740px] lg:w-[880px] aspect-square rounded-full blur-[80px] sm:blur-[140px] md:blur-[180px]"
           aria-hidden
         >
           <div className="w-full h-full rounded-full bg-gradient-to-b from-[#bcf66a] via-[#84df25] to-[#2c6109] opacity-80" />
@@ -392,7 +392,7 @@ export function Hero() {
               <div className="pt-4">
                 <a
                   href="#contact"
-                  className="btn-learn-more group focus-ring !min-w-[12.5rem]"
+                  className="btn-learn-more group focus-ring w-full sm:!w-auto sm:!min-w-[12.5rem]"
                 >
                   <span className="circle" aria-hidden="true">
                     <span className="icon arrow"></span>
