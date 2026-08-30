@@ -41,8 +41,8 @@ export function AdminLogin() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#070908] px-4 py-12 text-text selection:bg-accent selection:text-bg">
-      <div className="w-full max-w-md space-y-8 rounded-2xl border border-border/80 bg-[#0d110e] p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+    <div className="flex min-h-screen items-center justify-center bg-bg px-4 py-12 text-text selection:bg-accent selection:text-bg">
+      <div className="w-full max-w-md space-y-8 rounded-2xl border border-border bg-surface p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
         {/* Header */}
         <div className="text-center space-y-2">
           <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-accent/30 bg-accent/10 text-accent shadow-inner">
@@ -93,7 +93,7 @@ export function AdminLogin() {
 
         <div className="relative flex items-center justify-center">
           <div className="w-full border-t border-border" />
-          <span className="absolute bg-[#0d110e] px-3 font-mono text-[10px] uppercase text-muted tracking-widest">
+          <span className="absolute bg-surface px-3 font-mono text-[10px] uppercase text-muted tracking-widest">
             Ou par identifiants
           </span>
         </div>

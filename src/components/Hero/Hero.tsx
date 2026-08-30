@@ -103,16 +103,123 @@ export function Hero() {
         </div>
 
         {/* =========================================================================
-            CENTER STAGE: "HILARUS" + 3D FLOATING CUTOUT + "GBAGOULE"
+            CENTER STAGE: RESPONSIVE DESKTOP VS MOBILE COMPOSITIONS
             ========================================================================= */}
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center my-2 sm:my-4">
-          
+        
+        {/* MOBILE COMPOSITION (< md): TEXT -> DESCRIPTION -> PHOTO -> SOCIALS -> CTA */}
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center my-4 md:hidden w-full text-center space-y-4">
+          {/* 1. TEXTE */}
+          <div className="space-y-1">
+            <motion.h1
+              initial={{ opacity: 0, y: -16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              className="font-display text-[clamp(2.4rem,12vw,4.5rem)] leading-[0.95] tracking-tight uppercase text-text"
+            >
+              HILARUS
+            </motion.h1>
+            <motion.h1
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+              className="font-display text-[clamp(2.4rem,12vw,4.5rem)] leading-[0.95] tracking-tight uppercase text-accent"
+            >
+              GBAGOULE
+            </motion.h1>
+          </div>
+
+          {/* 2. DESCRIPTION */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="px-2 max-w-md mx-auto"
+          >
+            <p className="font-mono text-xs uppercase tracking-wider text-muted font-medium">
+              Creative Technologist × Designer & Product Engineer
+            </p>
+            <p className="text-sm text-text/80 mt-1 leading-relaxed">
+              Conception d&apos;expériences immersives, d&apos;architectures logicielles et de systèmes IA élégants.
+            </p>
+          </motion.div>
+
+          {/* 3. PHOTO (Proportionate, no cut-off) */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, delay: 0.25 }}
+            className="relative my-2 w-[clamp(220px,65vw,340px)] max-w-full pointer-events-none select-none"
+          >
+            {/* Ambient Rim Light */}
+            <div className="absolute inset-0 bg-gradient-to-t from-accent/25 via-accent/20 to-transparent blur-2xl rounded-full opacity-60 pointer-events-none" />
+
+            <div className="relative w-full aspect-[3.2/3.8] flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={profilePhotoUrl}
+                alt={site.fullName || "Hilarus Gbagoule — Creative Technologist"}
+                className="w-full h-full object-contain object-bottom portrait-3d-mask portrait-glow-filter"
+                onError={(e) => {
+                  e.currentTarget.src = "/me.jpg";
+                }}
+              />
+            </div>
+          </motion.div>
+
+          {/* 4. SOCIAL LINKS */}
+          <motion.nav
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.35 }}
+            aria-label="Social profiles mobile"
+            className="flex flex-wrap items-center justify-center gap-2 pt-1 z-30"
+          >
+            {[
+              {
+                id: "dribbble",
+                label: "DRIBBBLE",
+                href: cmsConfig?.socials?.dribbble || "https://dribbble.com",
+              },
+              {
+                id: "behance",
+                label: "BEHANCE",
+                href: cmsConfig?.socials?.behance || "https://behance.net",
+              },
+              {
+                id: "linkedin",
+                label: "LINKEDIN",
+                href: cmsConfig?.socials?.linkedin || "https://linkedin.com/in/hilarus-gbagoule-6a926b426",
+              },
+              {
+                id: "github",
+                label: "GITHUB",
+                href: cmsConfig?.socials?.github || "https://github.com",
+              },
+            ]
+              .filter((item) => Boolean(item.href))
+              .map((social) => (
+                <a
+                  key={social.id}
+                  href={social.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="social-pill-chip focus-ring"
+                >
+                  <span className="dot" aria-hidden="true" />
+                  <span>{social.label}.</span>
+                </a>
+              ))}
+          </motion.nav>
+        </div>
+
+        {/* DESKTOP COMPOSITION (>= md): TEXT + OVERLAPPING 3D PHOTO + TILT PARALLAX */}
+        <div className="relative z-10 flex-1 hidden md:flex flex-col items-center justify-center my-2 sm:my-4">
           {/* Upper Giant Name: HILARUS */}
           <motion.h1
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            className="font-display text-[clamp(2.5rem,10.5vw,9.2rem)] leading-[0.9] tracking-tight uppercase text-text text-center drop-shadow-sm z-10 w-full max-w-full px-2"
+            className="font-display text-[clamp(4.5rem,10.5vw,9.2rem)] leading-[0.9] tracking-tight uppercase text-text text-center drop-shadow-sm z-10 w-full max-w-full px-2"
           >
             HILARUS
           </motion.h1>
@@ -127,9 +234,9 @@ export function Hero() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.9, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="relative -my-6 sm:-my-10 md:-my-14 lg:-my-18 z-20 w-[clamp(190px,52vw,450px)] max-w-full pointer-events-none select-none"
+            className="relative -my-10 md:-my-14 lg:-my-18 z-20 w-[clamp(280px,38vw,450px)] max-w-full pointer-events-none select-none"
           >
-            {/* Ambient Lime Rim Light behind portrait */}
+            {/* Ambient Rim Light behind portrait */}
             <div className="absolute inset-0 -inset-x-4 bg-gradient-to-t from-accent/20 via-accent/30 to-transparent blur-2xl rounded-full opacity-60 pointer-events-none" />
 
             <div className="relative w-full aspect-[3.2/3.8] flex items-center justify-center">
@@ -150,7 +257,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="font-display text-[clamp(2.5rem,10.5vw,9.2rem)] leading-[0.9] tracking-tight uppercase text-accent text-center drop-shadow-[0_4px_30px_rgba(0,0,0,0.8)] z-10 w-full max-w-full px-2"
+            className="font-display text-[clamp(4.5rem,10.5vw,9.2rem)] leading-[0.9] tracking-tight uppercase text-accent text-center z-10 w-full max-w-full px-2 drop-shadow-sm"
           >
             GBAGOULE
           </motion.h1>
@@ -243,7 +350,7 @@ export function Hero() {
       {/* =========================================================================
           TRANSITION HERO NARRATIVE (MATCHES LOWER HALF OF REFERENCE: "I AM...")
           ========================================================================= */}
-      <section className="relative z-10 border-t border-border/80 bg-[#080a09] py-20 md:py-32">
+      <section className="relative z-10 border-t border-border/80 bg-surface/50 py-20 md:py-32">
         <div className="section-shell">
           <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 items-start">
             
@@ -261,7 +368,7 @@ export function Hero() {
               </div>
 
               <h2 className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl leading-[0.94] text-text tracking-tight uppercase">
-                <span className="block text-white/95">I AM</span>
+                <span className="block text-text">I AM</span>
                 <span className="block text-accent">HILARUS</span>
               </h2>
             </motion.div>
@@ -274,7 +381,7 @@ export function Hero() {
               transition={{ duration: 0.7, delay: 0.15 }}
               className="lg:col-span-6 space-y-6 lg:pt-4"
             >
-              <h3 className="font-display text-2xl sm:text-3xl text-white/90 leading-tight uppercase">
+              <h3 className="font-display text-2xl sm:text-3xl text-text leading-tight uppercase">
                 {site.statement.subheading}
               </h3>
 

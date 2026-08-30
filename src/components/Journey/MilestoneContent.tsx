@@ -38,7 +38,7 @@ export function MilestoneContent({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -12 }}
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className="relative grid w-full grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-12 rounded-3xl border border-border/80 bg-[#0c100d]/90 p-6 sm:p-10 lg:p-12 shadow-2xl backdrop-blur-md"
+          className="relative grid w-full grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-12 rounded-3xl border border-border/80 bg-surface/90 p-6 sm:p-10 lg:p-12 shadow-2xl backdrop-blur-md"
         >
           {/* =========================================================================
               LEFT COLUMN: GRAND TITRE + PETIT SOUS-TITRE + DATE (Airy & Clean)
@@ -50,12 +50,12 @@ export function MilestoneContent({
                 <span className="font-mono text-xs font-bold text-accent tracking-wider rounded-lg bg-accent/10 border border-accent/25 px-3 py-1">
                   ÉTAPE {milestone.stepNumber}
                 </span>
-                <div className="flex items-center gap-1.5 font-mono text-xs text-muted">
+                <div className="flex items-center gap-1.5 font-mono text-xs text-muted font-medium">
                   <Calendar size={13} className="text-accent" />
                   <span>{milestone.date}</span>
                 </div>
                 {milestone.location && (
-                  <span className="hidden sm:flex items-center gap-1 font-mono text-xs text-muted/80 border-l border-border/80 pl-3">
+                  <span className="hidden sm:flex items-center gap-1 font-mono text-xs text-muted/80 border-l border-border pl-3">
                     <MapPin size={12} />
                     {milestone.location}
                   </span>
@@ -68,7 +68,7 @@ export function MilestoneContent({
               </h3>
 
               {/* Petit Sous-titre */}
-              <p className="text-base sm:text-lg text-accent/90 font-medium leading-relaxed">
+              <p className="text-base sm:text-lg text-accent font-semibold leading-relaxed">
                 {milestone.headline || milestone.shortTitle}
               </p>
 
@@ -125,13 +125,13 @@ export function MilestoneContent({
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
 
               {/* Tag Badge */}
-              <div className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full border border-white/15 bg-black/75 px-3 py-1 text-xs font-mono text-text backdrop-blur-md">
+              <div className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full border border-white/20 bg-black/80 px-3 py-1 text-xs font-mono text-white backdrop-blur-md">
                 <Sparkles size={11} className="text-accent" />
                 <span>{milestone.badge || "JALON"}</span>
               </div>
 
               {/* Overlay hover prompt */}
-              <div className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-xl border border-white/15 bg-black/80 px-3 py-1.5 font-mono text-xs text-accent font-semibold backdrop-blur-md opacity-90 group-hover:opacity-100 group-hover:bg-accent group-hover:text-bg transition-all">
+              <div className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-xl border border-white/20 bg-black/85 px-3 py-1.5 font-mono text-xs text-accent font-semibold backdrop-blur-md opacity-90 group-hover:opacity-100 group-hover:bg-accent group-hover:text-accent-contrast transition-all">
                 <span>Explorer l&apos;histoire</span>
                 <ArrowUpRight size={13} />
               </div>

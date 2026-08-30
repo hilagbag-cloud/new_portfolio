@@ -61,12 +61,12 @@ export function ProjectCard({
             ========================================================================= */}
         <div className="book-interior flex flex-col justify-between overflow-hidden">
           {/* Top Bar inside the book */}
-          <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-3">
+          <div className="flex items-center justify-between border-b border-border pb-3 mb-3">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xs font-bold text-accent px-2 py-0.5 rounded bg-black/60 border border-accent/30">
+              <span className="font-mono text-xs font-bold text-accent px-2 py-0.5 rounded bg-accent/15 border border-accent/30">
                 #{project.number}
               </span>
-              <span className="font-mono text-[10px] text-muted uppercase tracking-wider">
+              <span className="font-mono text-[10px] text-muted uppercase tracking-wider font-semibold">
                 {previewMode === "image" ? "APERÇU VISUEL DU SITE" : "DOSSIER TECHNIQUE"}
               </span>
             </div>
@@ -74,7 +74,7 @@ export function ProjectCard({
             <button
               type="button"
               onClick={handleToggle}
-              className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-muted hover:bg-accent hover:text-bg transition-colors"
+              className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-surface text-muted hover:bg-accent hover:text-accent-contrast transition-colors"
               title="Fermer le cahier"
             >
               <X size={12} />
@@ -109,7 +109,7 @@ export function ProjectCard({
                     <span className="text-[11px] font-mono text-accent font-semibold px-2 py-0.5 rounded bg-black/80 border border-accent/30">
                       Live Preview
                     </span>
-                    <span className="text-[10px] text-white/80 font-mono">
+                    <span className="text-[10px] text-white/90 font-mono">
                       {project.name}
                     </span>
                   </div>
@@ -132,26 +132,26 @@ export function ProjectCard({
                     {project.name}
                   </h4>
                   {project.tagline && (
-                    <p className="text-xs text-accent font-mono mt-0.5 font-medium">
+                    <p className="text-xs text-accent font-mono mt-0.5 font-semibold">
                       {project.tagline}
                     </p>
                   )}
                 </div>
 
-                <p className="text-xs text-muted/95 leading-relaxed">
+                <p className="text-xs text-muted leading-relaxed">
                   {project.shortDescription}
                 </p>
 
                 {project.technologies && project.technologies.length > 0 && (
-                  <div className="pt-2 border-t border-white/5">
-                    <span className="font-mono text-[10px] text-muted/70 uppercase block mb-1.5">
+                  <div className="pt-2 border-t border-border">
+                    <span className="font-mono text-[10px] text-muted uppercase block mb-1.5 font-semibold">
                       Technologies & Stack :
                     </span>
                     <div className="flex flex-wrap gap-1">
                       {project.technologies.map((tech) => (
                         <span
                           key={tech}
-                          className="font-mono text-[10px] px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-text/90"
+                          className="font-mono text-[10px] px-2 py-0.5 rounded-md bg-surface border border-border text-text font-medium"
                         >
                           {tech}
                         </span>
@@ -164,8 +164,8 @@ export function ProjectCard({
           </div>
 
           {/* Action Link at Bottom of Interior */}
-          <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
-            <span className="font-mono text-[10px] text-accent/90 flex items-center gap-1.5">
+          <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
+            <span className="font-mono text-[10px] text-accent flex items-center gap-1.5 font-semibold">
               <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
               <span>{project.caseStudy ? "Étude Complète" : "Production"}</span>
             </span>
@@ -182,7 +182,7 @@ export function ProjectCard({
                 <ExternalLink size={11} />
               </a>
             ) : (
-              <span className="font-mono text-[10px] text-muted px-2 py-0.5 rounded bg-white/5 border border-white/10">
+              <span className="font-mono text-[10px] text-muted px-2 py-0.5 rounded bg-surface border border-border">
                 PROJET INTERNE
               </span>
             )}
@@ -195,13 +195,13 @@ export function ProjectCard({
         <div className="book-cover flex flex-col justify-between transition-transform duration-300">
           
           {/* SECTION 1 (TOP 1/3): Header band with ID, category and status */}
-          <div className="border-b border-white/10 pb-3">
+          <div className="border-b border-border/80 pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="font-mono text-xs font-bold text-accent px-2.5 py-0.5 rounded-full bg-black/70 border border-accent/40">
+                <span className="font-mono text-xs font-bold text-accent px-2.5 py-0.5 rounded-full bg-accent/15 border border-accent/40">
                   #{project.number}
                 </span>
-                <span className="font-mono text-[10px] text-muted uppercase tracking-wider">
+                <span className="font-mono text-[10px] text-muted uppercase tracking-wider font-semibold">
                   {category === "design"
                     ? "DESIGN & UI"
                     : category === "ai-data"
@@ -211,7 +211,7 @@ export function ProjectCard({
               </div>
 
               {/* Category-specific icon */}
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-black/50 border border-white/10 text-accent">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface border border-border text-accent shadow-xs">
                 {category === "design" ? (
                   <Palette size={14} />
                 ) : category === "ai-data" ? (
@@ -230,35 +230,35 @@ export function ProjectCard({
             </h3>
 
             {project.tagline ? (
-              <p className="mt-1 text-xs font-mono text-muted/90 line-clamp-1">
+              <p className="mt-1 text-xs font-mono text-muted line-clamp-1">
                 {project.tagline}
               </p>
             ) : (
-              <p className="mt-1 text-xs text-muted/80 line-clamp-2 font-sans">
+              <p className="mt-1 text-xs text-muted line-clamp-2 font-sans">
                 {project.shortDescription}
               </p>
             )}
 
             {/* Micro-animations tailored to expertise category */}
-            <div className="mt-3 overflow-hidden rounded-lg border border-white/10 bg-black/40 p-2 text-xs">
+            <div className="mt-3 overflow-hidden rounded-lg border border-border/80 bg-surface/80 p-2.5 text-xs">
               {category === "ai-data" ? (
                 /* IA / Data: Terminal Matrix Code Flux */
                 <div className="font-mono text-[10px] space-y-1 text-muted">
-                  <div className="flex items-center justify-between text-accent/90">
+                  <div className="flex items-center justify-between text-accent font-semibold">
                     <span className="flex items-center gap-1">
                       <span className="h-1.5 w-1.5 rounded-full bg-accent animate-ping" />
                       &gt; data_stream.py
                     </span>
                     <span className="text-[9px] text-muted">MODEL_READY</span>
                   </div>
-                  <div className="text-[9px] text-muted/70 truncate">
+                  <div className="text-[9px] text-muted truncate">
                     tensor_shape: [batch, 512] | accuracy: 98.4%
                   </div>
                 </div>
               ) : category === "design" ? (
                 /* Design: Dynamic, clean and sober visual cadence */
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 font-mono text-[10px] text-accent">
+                  <div className="flex items-center gap-1.5 font-mono text-[10px] text-accent font-semibold">
                     <Sparkles size={11} className="animate-pulse" />
                     <span>SYSTEM INTERACTION</span>
                   </div>
@@ -271,37 +271,37 @@ export function ProjectCard({
               ) : (
                 /* Software / Web: Tech stack pipeline */
                 <div className="flex items-center justify-between font-mono text-[10px]">
-                  <span className="text-accent flex items-center gap-1">
+                  <span className="text-accent flex items-center gap-1 font-semibold">
                     <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
                     <span>BUILD: PASSING</span>
                   </span>
-                  <span className="text-muted">READY_TO_LAUNCH</span>
+                  <span className="text-muted font-medium">READY_TO_LAUNCH</span>
                 </div>
               )}
             </div>
           </div>
 
           {/* SECTION 3 (BOTTOM 1/3): Tech tags & Interactive Trigger */}
-          <div className="border-t border-white/10 pt-3">
+          <div className="border-t border-border/80 pt-3">
             <div className="flex items-center justify-between">
               <div className="flex flex-wrap gap-1 max-w-[70%]">
                 {project.technologies.slice(0, 2).map((tech) => (
                   <span
                     key={tech}
-                    className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-black/50 border border-white/10 text-muted truncate"
+                    className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-surface border border-border text-muted truncate font-medium"
                   >
                     {tech}
                   </span>
                 ))}
                 {project.technologies.length > 2 && (
-                  <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-black/50 border border-white/10 text-muted">
+                  <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-surface border border-border text-muted font-medium">
                     +{project.technologies.length - 2}
                   </span>
                 )}
               </div>
 
               {/* Reveal indicator / Book trigger */}
-              <div className="flex items-center gap-1.5 font-mono text-[11px] text-accent font-semibold group-hover:underline">
+              <div className="flex items-center gap-1.5 font-mono text-[11px] text-accent font-bold group-hover:underline">
                 <BookOpen size={13} />
                 <span className="uppercase text-[10px]">
                   {isOpen ? "Fermer" : "Ouvrir"}

@@ -70,16 +70,17 @@ export function Navigation() {
 
           <button
             type="button"
-            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((v) => !v)}
-            className="md:hidden inline-flex items-center gap-2 eyebrow text-text focus-ring p-2"
+            className="md:hidden inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-xl border border-border bg-surface/80 px-3.5 py-2 eyebrow text-text hover:border-accent hover:text-accent transition-all focus-ring active:scale-95"
+            id="mobile-nav-toggle-btn"
           >
-            {menuOpen ? "FERMER" : "MENU"}
+            <span className="font-semibold text-xs">{menuOpen ? "FERMER" : "MENU"}</span>
             {menuOpen ? (
-              <X size={18} strokeWidth={2} />
+              <X size={18} strokeWidth={2.2} />
             ) : (
-              <Menu size={18} strokeWidth={2} />
+              <Menu size={18} strokeWidth={2.2} />
             )}
           </button>
         </nav>
@@ -92,17 +93,29 @@ export function Navigation() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 bg-bg/95 backdrop-blur-xl md:hidden"
+            className="fixed inset-0 z-40 flex flex-col justify-between bg-bg/98 backdrop-blur-2xl md:hidden overflow-y-auto px-6 py-20"
           >
+            {/* Top Close Bar in Drawer */}
+            <div className="absolute top-6 right-6">
+              <button
+                type="button"
+                onClick={() => setMenuOpen(false)}
+                aria-label="Fermer le menu"
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-border bg-surface text-text hover:border-accent hover:text-accent transition-all focus-ring"
+              >
+                <X size={20} strokeWidth={2.2} />
+              </button>
+            </div>
+
             <motion.ul
               initial="hidden"
               animate="visible"
               exit="hidden"
               variants={{
-                visible: { transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
+                visible: { transition: { staggerChildren: 0.07, delayChildren: 0.08 } },
                 hidden: {},
               }}
-              className="flex h-full flex-col items-start justify-center gap-3 section-shell"
+              className="flex flex-col items-start justify-center gap-1 my-auto w-full"
             >
               {site.nav.links.map((link) => (
                 <motion.li
@@ -111,40 +124,40 @@ export function Navigation() {
                     hidden: { opacity: 0, x: -16 },
                     visible: { opacity: 1, x: 0 },
                   }}
-                  transition={{ duration: 0.3 }}
+                  transition={{ duration: 0.25 }}
+                  className="w-full"
                 >
                   <a
                     href={link.href}
                     onClick={handleLinkClick}
-                    className="font-display text-4xl text-text hover:text-accent transition-colors focus-ring"
+                    className="block w-full py-3.5 font-display text-3xl sm:text-4xl text-text hover:text-accent transition-colors focus-ring"
                   >
                     {link.label}
                   </a>
                 </motion.li>
               ))}
-              <motion.li
-                variants={{
-                  hidden: { opacity: 0, x: -16 },
-                  visible: { opacity: 1, x: 0 },
-                }}
-                transition={{ duration: 0.3 }}
-                className="pt-6 flex flex-col gap-4"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="eyebrow text-xs text-muted">Thème :</span>
-                  <ThemeToggle variant="compact" />
-                </div>
-
-                <a
-                  href={site.nav.contact.href}
-                  onClick={handleLinkClick}
-                  className="inline-flex items-center justify-center gap-2 rounded-btn bg-accent px-6 py-3 eyebrow text-bg font-bold focus-ring shadow-lg"
-                >
-                  CONTACTER
-                  <ArrowUpRight size={14} strokeWidth={2} />
-                </a>
-              </motion.li>
             </motion.ul>
+
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25, duration: 0.3 }}
+              className="pt-8 border-t border-border flex flex-col gap-4 w-full"
+            >
+              <div className="flex items-center justify-between">
+                <span className="eyebrow text-xs text-muted">Mode Visuel</span>
+                <ThemeToggle variant="compact" />
+              </div>
+
+              <a
+                href={site.nav.contact.href}
+                onClick={handleLinkClick}
+                className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3.5 font-mono text-xs font-bold text-accent-contrast focus-ring shadow-lg hover:opacity-95 transition-opacity"
+              >
+                <span>CONTACTER LE STUDIO</span>
+                <ArrowUpRight size={15} strokeWidth={2.2} />
+              </a>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

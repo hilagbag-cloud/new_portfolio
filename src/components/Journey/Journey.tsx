@@ -31,7 +31,8 @@ const DESKTOP_SEGMENTS: CubicSegment[] = [
   { p0: { x: 1060, y: 60 }, p1: { x: 1110, y: 40 }, p2: { x: 1150, y: 55 }, p3: { x: 1170, y: 48 } },
 ];
 
-function RoadmapCurve({
+/** Desktop Horizontal Roadmap Curve */
+function DesktopRoadmapCurve({
   progress,
   activeIndex,
   milestonesList,
@@ -48,7 +49,7 @@ function RoadmapCurve({
   const dashoffset = reducedMotion ? 0 : length * (1 - Math.min(Math.max(progress, 0), 1));
 
   return (
-    <div className="relative w-full overflow-visible py-1" id="journey-roadmap-curve">
+    <div className="relative w-full overflow-visible py-1" id="journey-roadmap-curve-desktop">
       <svg viewBox={DESKTOP_VIEWBOX} className="h-12 w-full overflow-visible sm:h-14" aria-hidden>
         {/* Background Guide Line */}
         <path
@@ -121,6 +122,161 @@ function RoadmapCurve({
   );
 }
 
+/** Mobile Dedicated Vertical / Semi-Vertical Organic Roadmap SVG (Strict Rule 7 Compliance) */
+function MobileVerticalRoadmap({
+  activeIndex,
+  milestonesList,
+  onSelectMilestone,
+}: {
+  activeIndex: number;
+  milestonesList: Milestone[];
+  onSelectMilestone: (m: Milestone) => void;
+}) {
+  const count = milestonesList.length;
+  const itemHeight = 64;
+  const totalHeight = Math.max(count * itemHeight, 180);
+  const viewBox = `0 0 160 ${totalHeight}`;
+
+  const nodePoints = useMemo(() => {
+    return milestonesList.map((_, i) => {
+      const y = (i + 0.5) * itemHeight;
+      // Semi-vertical alternating curve: Left (34) <-> Right (76)
+      const x = i % 2 === 0 ? 34 : 76;
+      return { x, y };
+    });
+  }, [milestonesList, itemHeight]);
+
+  const mobileSegments: CubicSegment[] = useMemo(() => {
+    if (nodePoints.length < 2) return [];
+    const segs: CubicSegment[] = [];
+    for (let i = 0; i < nodePoints.length - 1; i++) {
+      const p0 = nodePoints[i];
+      const p3 = nodePoints[i + 1];
+      const dy = (p3.y - p0.y) / 2;
+      const p1 = { x: p0.x, y: p0.y + dy };
+      const p2 = { x: p3.x, y: p3.y - dy };
+      segs.push({ p0, p1, p2, p3 });
+    }
+    return segs;
+  }, [nodePoints]);
+
+  const pathD = useMemo(() => pathFromSegments(mobileSegments), [mobileSegments]);
+
+  if (count === 0) return null;
+
+  return (
+    <div className="relative w-full overflow-hidden rounded-2xl border border-border/80 bg-surface/70 p-3 my-2 shadow-inner">
+      <div className="flex items-center justify-between mb-2 px-1">
+        <span className="eyebrow text-[10px] text-accent font-mono font-bold">
+          Trajectoire Verticale (Roadmap)
+        </span>
+        <span className="font-mono text-[10px] text-muted">
+          Touchez une étape
+        </span>
+      </div>
+
+      <div className="relative w-full flex items-center justify-center">
+        <svg
+          viewBox={viewBox}
+          className="w-full max-w-[280px] h-auto overflow-visible"
+          style={{ maxHeight: `${totalHeight + 20}px` }}
+          aria-hidden="true"
+        >
+          {/* Background dashed organic spine */}
+          {pathD && (
+            <path
+              d={pathD}
+              fill="none"
+              stroke="var(--color-border)"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeDasharray="4 6"
+            />
+          )}
+
+          {/* Active Highlight Connection Spine */}
+          {pathD && (
+            <path
+              d={pathD}
+              fill="none"
+              stroke="var(--color-accent)"
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              opacity={0.85}
+            />
+          )}
+
+          {/* Milestone Interactive Nodes */}
+          {milestonesList.map((m, idx) => {
+            const pt = nodePoints[idx];
+            if (!pt) return null;
+            const isActive = idx === activeIndex;
+
+            return (
+              <g
+                key={m.id}
+                className="cursor-pointer"
+                onClick={() => onSelectMilestone(m)}
+                tabIndex={0}
+                role="button"
+                aria-label={`Étape ${m.stepNumber}: ${m.shortTitle}`}
+              >
+                {/* Outer Pulse Halo when active */}
+                {isActive && (
+                  <circle
+                    cx={pt.x}
+                    cy={pt.y}
+                    r={18}
+                    fill="var(--color-accent)"
+                    opacity={0.22}
+                    className="animate-pulse"
+                  />
+                )}
+
+                {/* Node Outer Ring */}
+                <circle
+                  cx={pt.x}
+                  cy={pt.y}
+                  r={isActive ? 9 : 6}
+                  fill={isActive ? "var(--color-surface)" : "var(--color-bg)"}
+                  stroke={isActive ? "var(--color-accent)" : "var(--color-border)"}
+                  strokeWidth={isActive ? 2.5 : 1.5}
+                  style={{ transition: "all 0.25s ease" }}
+                />
+
+                {/* Center Node Dot */}
+                <circle
+                  cx={pt.x}
+                  cy={pt.y}
+                  r={isActive ? 3.5 : 2}
+                  fill={isActive ? "var(--color-accent)" : "var(--color-muted)"}
+                />
+
+                {/* Milestone Short Title Text Label */}
+                <text
+                  x={pt.x + (idx % 2 === 0 ? -14 : 16)}
+                  y={pt.y + 4}
+                  textAnchor={idx % 2 === 0 ? "end" : "start"}
+                  className={`font-mono text-[10px] font-bold ${
+                    isActive ? "fill-accent font-semibold" : "fill-muted hover:fill-text"
+                  }`}
+                  style={{
+                    fontSize: "10px",
+                    fontFamily: "var(--font-ibm-plex-mono), monospace",
+                    transition: "fill 0.2s ease",
+                  }}
+                >
+                  {m.shortTitle || m.stepNumber}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 export function Journey() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -181,10 +337,10 @@ export function Journey() {
     <section
       id="journey"
       ref={sectionRef}
-      className="relative h-[300vh] bg-bg"
+      className="relative bg-bg py-16 sm:py-20 lg:py-0 lg:h-[300vh] transition-colors"
     >
-      {/* Sticky Screen-Fitted Container */}
-      <div className="sticky top-0 flex min-h-screen w-full flex-col justify-center overflow-hidden py-8 sm:py-12">
+      {/* Container: Native Fluid Flow on Mobile (< lg) and Sticky Full-Screen on Desktop (>= lg) */}
+      <div className="lg:sticky lg:top-0 flex min-h-screen w-full flex-col justify-center overflow-hidden py-4 sm:py-8 lg:py-12">
         <div className="section-shell w-full flex flex-col justify-between space-y-4 sm:space-y-6">
           
           {/* Top Section Header & Timeline Control HUD */}
@@ -207,10 +363,10 @@ export function Journey() {
                     type="button"
                     onClick={handlePrev}
                     disabled={computedActiveIndex === 0}
-                    className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg text-text transition-colors hover:bg-white/5 hover:text-accent disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-text focus-ring"
+                    className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg text-text transition-colors hover:bg-white/5 hover:text-accent disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-text focus-ring active:scale-95"
                     aria-label="Étape précédente"
                   >
-                    <ChevronLeft size={15} />
+                    <ChevronLeft size={16} />
                   </button>
                   <span className="px-2 font-mono text-xs text-muted">
                     <span className="text-accent font-semibold">
@@ -223,18 +379,18 @@ export function Journey() {
                     type="button"
                     onClick={handleNext}
                     disabled={computedActiveIndex === published.length - 1}
-                    className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg text-text transition-colors hover:bg-white/5 hover:text-accent disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-text focus-ring"
+                    className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg text-text transition-colors hover:bg-white/5 hover:text-accent disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-text focus-ring active:scale-95"
                     aria-label="Étape suivante"
                   >
-                    <ChevronRight size={15} />
+                    <ChevronRight size={16} />
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Desktop Signature Roadmap Curve */}
+            {/* Desktop Signature Horizontal Roadmap Curve (>= lg) */}
             <div className="mt-2 hidden lg:block">
-              <RoadmapCurve
+              <DesktopRoadmapCurve
                 progress={manualIndex !== null ? manualIndex / (published.length - 1) : scrollProgress}
                 activeIndex={computedActiveIndex}
                 milestonesList={published}
@@ -242,8 +398,17 @@ export function Journey() {
               />
             </div>
 
+            {/* Mobile Dedicated Vertical / Semi-Vertical Organic Roadmap (< lg) */}
+            <div className="block lg:hidden">
+              <MobileVerticalRoadmap
+                activeIndex={computedActiveIndex}
+                milestonesList={published}
+                onSelectMilestone={handleSelectMilestone}
+              />
+            </div>
+
             {/* Interactive Step Tabs Bar */}
-            <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none">
               {published.map((m, idx) => {
                 const isActive = idx === computedActiveIndex;
                 return (
@@ -251,7 +416,7 @@ export function Journey() {
                     key={m.id}
                     type="button"
                     onClick={() => handleSelectMilestone(m)}
-                    className={`group relative flex items-center gap-2 rounded-xl border px-3 py-1.5 sm:px-3.5 sm:py-2 text-left transition-all duration-200 focus-ring ${
+                    className={`group relative flex items-center gap-2 rounded-xl border px-3 py-2 sm:px-3.5 sm:py-2 text-left transition-all duration-200 focus-ring flex-shrink-0 min-h-[40px] ${
                       isActive
                         ? "border-accent/80 bg-accent/10 shadow-[0_0_12px_rgba(168,243,90,0.12)]"
                         : "border-border bg-surface/70 hover:border-border/90 hover:bg-surface"
@@ -273,7 +438,7 @@ export function Journey() {
                       {m.shortTitle}
                     </span>
                     {isActive && (
-                      <span className="hidden sm:inline-block h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
                     )}
                   </button>
                 );
@@ -291,17 +456,17 @@ export function Journey() {
           </div>
 
           {/* Bottom Footnote / Deep Dive Link */}
-          <div className="flex items-center justify-between pt-1 text-xs font-mono text-muted/70">
-            <div className="hidden sm:flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2 text-xs font-mono text-muted/70">
+            <div className="flex items-center gap-2 text-center sm:text-left">
               <span className="h-1.5 w-1.5 rounded-full bg-accent/80" />
-              <span>Faites défiler la page ou sélectionnez une étape</span>
+              <span>Faites défiler ou sélectionnez une étape pour explorer</span>
             </div>
             <Link
               href={`/journey/${activeMilestone.id}`}
-              className="ml-auto inline-flex items-center gap-1.5 text-xs text-accent font-semibold transition-colors hover:underline"
+              className="inline-flex min-h-[40px] items-center gap-1.5 text-xs text-accent font-semibold transition-colors hover:underline"
             >
               <span>Accéder à la page de cette étape</span>
-              <ArrowUpRight size={13} />
+              <ArrowUpRight size={14} />
             </Link>
           </div>
 

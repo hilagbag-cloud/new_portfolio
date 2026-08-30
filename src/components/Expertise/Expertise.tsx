@@ -80,11 +80,11 @@ export function Expertise() {
               <div className="space-y-4">
                 {/* Header: Number & Category Icon */}
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-bold text-accent px-2.5 py-0.5 rounded-full bg-black/60 border border-accent/30">
+                  <span className="font-mono text-xs font-bold text-accent px-2.5 py-0.5 rounded-full bg-accent/15 border border-accent/30">
                     #{pillar.number}
                   </span>
 
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-surface/80 text-accent transition-transform duration-300 group-hover:scale-105 group-hover:border-accent">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-surface text-accent transition-transform duration-300 group-hover:scale-105 group-hover:border-accent">
                     {pillar.id === "design" && <Palette size={16} />}
                     {pillar.id === "software" && <Cpu size={16} />}
                     {pillar.id === "ai-data" && <Terminal size={16} />}

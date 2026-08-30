@@ -61,7 +61,7 @@ export function About() {
                 return (
                   <li
                     key={pillar.label}
-                    className="flex items-center gap-2 rounded-xl border border-white/10 bg-surface/60 px-3.5 py-2.5 text-xs text-text font-mono transition-colors hover:border-accent/40"
+                    className="flex items-center gap-2 rounded-xl border border-border bg-surface/80 px-3.5 py-2.5 text-xs text-text font-mono transition-colors hover:border-accent/40"
                   >
                     <IconComponent size={13} className="text-accent shrink-0" />
                     <span className="truncate">{pillar.label}</span>

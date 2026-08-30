@@ -203,7 +203,7 @@ export function MilestoneDetailClient({
 
           {/* Learnings & Takeaways Section */}
           {milestone.learnings && milestone.learnings.length > 0 && (
-            <div className="mt-12 rounded-2xl border border-border bg-[#0d110e] p-6 sm:p-8">
+            <div className="mt-12 rounded-2xl border border-border bg-surface p-6 sm:p-8">
               <h3 className="eyebrow mb-4 text-muted">Acquis & Enseignements Retenus</h3>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 {milestone.learnings.map((learning, idx) => (
@@ -228,7 +228,7 @@ export function MilestoneDetailClient({
                 href={milestone.externalUrl.href}
                 target={milestone.externalUrl.href.startsWith("http") ? "_blank" : undefined}
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-3 text-sm font-bold text-bg transition-transform hover:scale-105 focus-ring"
+                className="inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-3 text-sm font-bold text-accent-contrast transition-transform hover:scale-105 focus-ring"
               >
                 <span>{milestone.externalUrl.label}</span>
                 <ExternalLink size={16} />

@@ -77,7 +77,7 @@ export function Contact() {
   }
 
   const fieldClass =
-    "w-full rounded-xl border border-border bg-[#101411] px-4 py-3.5 text-text placeholder:text-muted/60 focus-ring focus:border-accent transition-all text-sm";
+    "w-full rounded-xl border border-border bg-surface px-4 py-3.5 text-text placeholder:text-muted/60 focus-ring focus:border-accent transition-all text-sm";
 
   return (
     <section id="contact" className="section-shell py-24 md:py-32 relative">
@@ -120,7 +120,7 @@ export function Contact() {
               <SocialFloatingTooltipList className="!justify-start gap-4" />
             </div>
 
-            <div className="pt-4 border-t border-white/5 space-y-2">
+            <div className="pt-4 border-t border-border space-y-2">
               <span className="eyebrow text-[11px] text-muted block">
                 Disponibilité
               </span>
@@ -150,7 +150,7 @@ export function Contact() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 role="status"
-                className="flex items-center gap-4 rounded-2xl border border-accent/50 bg-[#121a14] p-7 text-text shadow-xl"
+                className="flex items-center gap-4 rounded-2xl border border-accent/50 bg-surface p-7 text-text shadow-xl"
               >
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-accent/20 text-accent">
                   <CheckCircle2 size={28} strokeWidth={2} />
@@ -177,7 +177,7 @@ export function Contact() {
                       className={fieldClass}
                     />
                     {errors.name && (
-                      <p role="alert" className="mt-1.5 text-xs text-accent">
+                      <p role="alert" className="mt-1.5 text-xs text-red-500 font-medium">
                         {errors.name}
                       </p>
                     )}

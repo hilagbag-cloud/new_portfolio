@@ -507,7 +507,7 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
             onClick={() => setActiveSubTab("identity")}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
               activeSubTab === "identity"
-                ? "bg-accent text-bg"
+                ? "bg-accent text-accent-contrast"
                 : "text-muted hover:text-text"
             }`}
           >
@@ -519,7 +519,7 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
             onClick={() => setActiveSubTab("appearance")}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
               activeSubTab === "appearance"
-                ? "bg-accent text-bg"
+                ? "bg-accent text-accent-contrast"
                 : "text-muted hover:text-text"
             }`}
           >
@@ -531,7 +531,7 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
             onClick={() => setActiveSubTab("content")}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
               activeSubTab === "content"
-                ? "bg-accent text-bg"
+                ? "bg-accent text-accent-contrast"
                 : "text-muted hover:text-text"
             }`}
           >
@@ -543,7 +543,7 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
             onClick={() => setActiveSubTab("dns")}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
               activeSubTab === "dns"
-                ? "bg-accent text-bg"
+                ? "bg-accent text-accent-contrast"
                 : "text-muted hover:text-text"
             }`}
           >
@@ -1199,7 +1199,7 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
             <button
               type="submit"
               disabled={loading}
-              className="btn-skew !py-2.5 !px-6 !text-xs !bg-accent !text-bg !border-accent hover:!bg-accent/90 focus-ring font-bold shadow-lg"
+              className="btn-skew !py-2.5 !px-6 !text-xs !bg-accent !text-accent-contrast !border-accent hover:!bg-accent/90 focus-ring font-bold shadow-lg"
             >
               {loading ? (
                 <RefreshCw size={14} className="animate-spin" />
@@ -1316,7 +1316,7 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
                 <button
                   type="button"
                   onClick={() => setIsHeroStudioOpen(true)}
-                  className="flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/15 px-3 py-1.5 text-xs font-bold text-accent hover:bg-accent hover:text-bg transition-colors focus-ring"
+                  className="flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/15 px-3 py-1.5 text-xs font-bold text-accent hover:bg-accent hover:text-accent-contrast transition-colors focus-ring"
                 >
                   <Crop size={14} />
                   <span>Ouvrir Studio Hero</span>
@@ -1568,7 +1568,7 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
             <button
               type="submit"
               disabled={loading}
-              className="btn-skew !py-2.5 !px-6 !text-xs !bg-accent !text-bg !border-accent hover:!bg-accent/90 focus-ring font-bold shadow-lg"
+              className="btn-skew !py-2.5 !px-6 !text-xs !bg-accent !text-accent-contrast !border-accent hover:!bg-accent/90 focus-ring font-bold shadow-lg"
             >
               {loading ? (
                 <RefreshCw size={14} className="animate-spin" />
@@ -1668,7 +1668,7 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
               <button
                 type="button"
                 onClick={() => copyToClipboard(envVariablesString, "env")}
-                className="flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/15 px-3 py-1.5 text-xs font-mono font-bold text-accent hover:bg-accent hover:text-bg transition-colors"
+                className="flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/15 px-3 py-1.5 text-xs font-mono font-bold text-accent hover:bg-accent hover:text-accent-contrast transition-colors"
               >
                 {copiedEnv ? (
                   <>
