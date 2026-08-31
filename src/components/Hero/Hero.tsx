@@ -11,9 +11,10 @@ export function Hero() {
   const reducedMotion = useReducedMotion();
   const cmsConfig = useCmsSiteConfig();
 
-  // Photo URL resolution (Firestore CMS override or local/default)
+  // Photo URL resolution (Direct user photo priority without default image flash)
   const profilePhotoUrlLazy =
     (cmsConfig as { profileImage?: string })?.profileImage ||
+    (typeof window !== "undefined" ? localStorage.getItem("cms_profile_image") : null) ||
     site.profileImage ||
     "/hilarus.png";
 
@@ -165,12 +166,12 @@ export function Hero() {
               <img
                 src={profilePhotoUrlLazy}
                 alt={site.fullName || "Hilarus Gbagoule — Creative Technologist"}
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
                 className={`w-full h-auto max-h-[460px] ${
                   heroFit === "cover" ? "object-cover" : "object-contain"
                 } object-bottom portrait-3d-mask portrait-glow-filter`}
-                onError={(e) => {
-                  e.currentTarget.src = "/hilarus.png";
-                }}
               />
             </div>
           </motion.div>
@@ -255,12 +256,12 @@ export function Hero() {
               <img
                 src={profilePhotoUrlLazy}
                 alt={site.fullName || "Hilarus Gbagoule — Creative Technologist"}
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
                 className={`w-full h-auto max-h-[660px] ${
                   heroFit === "cover" ? "object-cover" : "object-contain"
                 } object-bottom portrait-3d-mask portrait-glow-filter transition-transform duration-500`}
-                onError={(e) => {
-                  e.currentTarget.src = "/hilarus.png";
-                }}
               />
             </div>
           </motion.div>

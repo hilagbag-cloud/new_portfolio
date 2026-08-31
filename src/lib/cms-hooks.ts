@@ -129,17 +129,70 @@ export function useCmsMilestones() {
 }
 
 export function useCmsSiteConfig(): CmsMergedSiteConfig {
-  const [siteConfig, setSiteConfig] = useState<CmsMergedSiteConfig>({
-    ...defaultSite,
-    ...defaultSiteMetadata,
-  } as CmsMergedSiteConfig);
+  const [siteConfig, setSiteConfig] = useState<CmsMergedSiteConfig>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("cms_site_config");
+        const cachedProfileImage = localStorage.getItem("cms_profile_image");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          return {
+            ...defaultSite,
+            ...defaultSiteMetadata,
+            ...parsed,
+            ...(cachedProfileImage ? { profileImage: cachedProfileImage } : {}),
+          } as CmsMergedSiteConfig;
+        } else if (cachedProfileImage) {
+          return {
+            ...defaultSite,
+            ...defaultSiteMetadata,
+            profileImage: cachedProfileImage,
+          } as CmsMergedSiteConfig;
+        }
+      } catch {
+        // ignore JSON parse or storage errors
+      }
+    }
+    return {
+      ...defaultSite,
+      ...defaultSiteMetadata,
+    } as CmsMergedSiteConfig;
+  });
 
   useEffect(() => {
+    // Check localStorage on client mount if initial SSR was empty
+    if (typeof window !== "undefined") {
+      try {
+        const cachedProfile = localStorage.getItem("cms_profile_image");
+        const cachedConfig = localStorage.getItem("cms_site_config");
+        if (cachedProfile || cachedConfig) {
+          const parsed = cachedConfig ? JSON.parse(cachedConfig) : {};
+          setSiteConfig((prev) => ({
+            ...prev,
+            ...parsed,
+            ...(cachedProfile ? { profileImage: cachedProfile } : {}),
+          }));
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     const unsub = onSnapshot(
       doc(db, "siteConfig", "global"),
       (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data() as SiteMetadataConfig;
+          if (typeof window !== "undefined") {
+            try {
+              localStorage.setItem("cms_site_config", JSON.stringify(data));
+              if (data.profileImage) {
+                localStorage.setItem("cms_profile_image", data.profileImage);
+              }
+            } catch {
+              // ignore storage quotas
+            }
+          }
           setSiteConfig((prev) => ({
             ...prev,
             ...data,

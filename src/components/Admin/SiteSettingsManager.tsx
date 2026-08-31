@@ -308,10 +308,32 @@ export function SiteSettingsManager() {
     loadConfig();
   }, []);
 
+  const handleProfileImageUpdate = (val: string) => {
+    setProfileImage(val);
+    if (typeof window !== "undefined") {
+      try {
+        if (val) {
+          localStorage.setItem("cms_profile_image", val);
+        } else {
+          localStorage.removeItem("cms_profile_image");
+        }
+      } catch {
+        // ignore
+      }
+    }
+  };
+
   const handleSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     try {
       setLoading(true);
+      if (typeof window !== "undefined" && profileImage) {
+        try {
+          localStorage.setItem("cms_profile_image", profileImage);
+        } catch {
+          // ignore
+        }
+      }
       const payload: SiteMetadataConfig = {
         metaTitle,
         metaDescription,
@@ -1346,7 +1368,7 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
               label="Visuel Hero Principal"
               sublabel="PNG, JPG ou WEBP. Compression et optimisation automatique."
               value={profileImage}
-              onChange={(val) => setProfileImage(val)}
+              onChange={handleProfileImageUpdate}
               aspectRatio="1/1"
               showCropTool={true}
             />
