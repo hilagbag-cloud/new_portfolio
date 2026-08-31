@@ -14,23 +14,23 @@ export function SelectedWork() {
   }
 
   return (
-    <section id="selected-work" className="section-shell py-24 md:py-32 relative overflow-hidden">
+    <section id="selected-work" className="section-shell py-16 md:py-32 relative overflow-hidden">
       {/* Background ambient subtle glow */}
       <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-accent/5 rounded-full blur-[140px]" />
 
       {/* HEADER WITH TITLE */}
-      <div className="mb-12 md:mb-16 flex flex-col gap-4 md:flex-row md:items-end md:justify-between border-b border-border/60 pb-8">
+      <div className="mb-8 md:mb-16 flex flex-col gap-3 md:flex-row md:items-end md:justify-between border-b border-border/60 pb-6 md:pb-8">
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.45 }}
         >
-          <div className="eyebrow mb-3 text-accent flex items-center gap-2">
+          <div className="eyebrow mb-2 md:mb-3 text-accent flex items-center gap-2">
             <Sparkles size={14} className="text-accent animate-pulse" />
             <span>SELECTED WORK × DOSSIERS</span>
           </div>
-          <h2 className="font-display text-4xl text-text sm:text-5xl lg:text-6xl tracking-tight uppercase">
+          <h2 className="font-display text-3xl sm:text-5xl lg:text-6xl text-text tracking-tight uppercase">
             Créations <span className="text-accent">&</span> Systèmes
           </h2>
         </motion.div>
@@ -41,8 +41,8 @@ export function SelectedWork() {
         </div>
       </div>
 
-      {/* 3-COLUMN RESPONSIVE GRID OF 3D BOOK CARDS */}
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 w-full max-w-full">
+      {/* RESPONSIVE GRID OF DIRECT PROJECT CARDS */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 w-full max-w-full">
         {published.map((project, index) => (
           <motion.div
             key={project.id}

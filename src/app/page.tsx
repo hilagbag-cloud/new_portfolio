@@ -1,4 +1,5 @@
 import { Navigation } from "@/components/Navigation/Navigation";
+import { MobileFloatingCta } from "@/components/Navigation/MobileFloatingCta";
 import { Hero } from "@/components/Hero/Hero";
 import { SelectedWork } from "@/components/SelectedWork/SelectedWork";
 import { Expertise } from "@/components/Expertise/Expertise";
@@ -12,6 +13,7 @@ export default function Home() {
   return (
     <div className="relative w-full max-w-full overflow-x-hidden min-h-screen">
       <Navigation />
+      <MobileFloatingCta />
       <main className="relative w-full max-w-full overflow-x-hidden">
         <Hero />
         <SelectedWork />

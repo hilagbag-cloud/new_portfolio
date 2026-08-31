@@ -127,8 +127,8 @@ export function HeroImageStudioModal({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // We output a clean high-resolution square canvas (800x800)
-    const exportSize = 800;
+    // High-resolution canvas output (1400x1400)
+    const exportSize = 1400;
     canvas.width = exportSize;
     canvas.height = exportSize;
 
@@ -141,7 +141,7 @@ export function HeroImageStudioModal({
       // Move to center of canvas
       ctx.translate(exportSize / 2, exportSize / 2);
 
-      // Apply Pan (normalized to 400px preview container)
+      // Apply Pan (normalized to 360px preview container)
       const scaleMultiplier = exportSize / 360;
       ctx.translate(position.x * scaleMultiplier, position.y * scaleMultiplier);
 
@@ -169,16 +169,34 @@ export function HeroImageStudioModal({
       ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
       ctx.restore();
 
-      // Export as optimized WebP or JPEG
-      try {
-        const dataUrl = canvas.toDataURL("image/webp", 0.92);
-        onSave(dataUrl);
-        onClose();
-      } catch {
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
-        onSave(dataUrl);
-        onClose();
+      // Export as optimized WebP or PNG (if transparent), fallback to JPEG
+      if (imageUrl.startsWith("data:image/png") || imageUrl.endsWith(".png")) {
+        try {
+          const pngUrl = canvas.toDataURL("image/png");
+          if (pngUrl.length < 4.5 * 1024 * 1024) {
+            onSave(pngUrl);
+            onClose();
+            return;
+          }
+        } catch {
+          // fallback to webp
+        }
       }
+
+      try {
+        const dataUrl = canvas.toDataURL("image/webp", 0.95);
+        if (dataUrl.startsWith("data:image/webp")) {
+          onSave(dataUrl);
+          onClose();
+          return;
+        }
+      } catch {
+        // fallback
+      }
+
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+      onSave(dataUrl);
+      onClose();
     };
     img.src = imageUrl;
   };

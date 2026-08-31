@@ -12,10 +12,17 @@ export function Hero() {
   const cmsConfig = useCmsSiteConfig();
 
   // Photo URL resolution (Firestore CMS override or local/default)
-  const profilePhotoUrl =
+  const profilePhotoUrlLazy =
     (cmsConfig as { profileImage?: string })?.profileImage ||
     site.profileImage ||
     "/hilarus.png";
+
+  const heroWidth =
+    (cmsConfig as { heroImageWidth?: number })?.heroImageWidth || 560;
+  const heroScale =
+    (cmsConfig as { heroImageScale?: number })?.heroImageScale || 1;
+  const heroFit =
+    (cmsConfig as { heroImageFit?: "contain" | "cover" | "natural" })?.heroImageFit || "contain";
 
   // Mouse coordinate tracker for 3D tilt & spotlight depth
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -107,22 +114,22 @@ export function Hero() {
             ========================================================================= */}
         
         {/* MOBILE COMPOSITION (< md): TEXT -> DESCRIPTION -> PHOTO -> SOCIALS -> CTA */}
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center my-4 md:hidden w-full text-center space-y-4">
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center my-2 md:hidden w-full text-center space-y-3">
           {/* 1. TEXTE */}
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             <motion.h1
-              initial={{ opacity: 0, y: -16 }}
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-              className="font-display text-[clamp(2.4rem,12vw,4.5rem)] leading-[0.95] tracking-tight uppercase text-text"
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              className="font-display text-[clamp(2.4rem,11.5vw,4rem)] leading-[0.95] tracking-tight uppercase text-text"
             >
               HILARUS
             </motion.h1>
             <motion.h1
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-              className="font-display text-[clamp(2.4rem,12vw,4.5rem)] leading-[0.95] tracking-tight uppercase text-accent"
+              transition={{ duration: 0.45, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
+              className="font-display text-[clamp(2.4rem,11.5vw,4rem)] leading-[0.95] tracking-tight uppercase text-accent"
             >
               GBAGOULE
             </motion.h1>
@@ -130,37 +137,39 @@ export function Hero() {
 
           {/* 2. DESCRIPTION */}
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="px-2 max-w-md mx-auto"
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="px-2 max-w-md mx-auto space-y-1"
           >
-            <p className="font-mono text-xs uppercase tracking-wider text-muted font-medium">
-              Creative Technologist × Designer & Product Engineer
+            <p className="font-mono text-xs uppercase tracking-wider text-muted font-semibold">
+              Creative Technologist × Product Engineer
             </p>
-            <p className="text-sm text-text/80 mt-1 leading-relaxed">
-              Conception d&apos;expériences immersives, d&apos;architectures logicielles et de systèmes IA élégants.
+            <p className="text-xs sm:text-sm text-text/80 leading-relaxed font-sans">
+              Conception d&apos;expériences immersives, d&apos;architectures logicielles et d&apos;IA.
             </p>
           </motion.div>
 
-          {/* 3. PHOTO (Proportionate, no cut-off) */}
+          {/* 3. PHOTO (Proportionate, expanded width, no cut-off) */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.92 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.25 }}
-            className="relative my-2 w-[clamp(220px,65vw,340px)] max-w-full pointer-events-none select-none"
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: heroScale }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+            className="relative my-1 w-[clamp(240px,82vw,480px)] max-w-full pointer-events-none select-none flex flex-col items-center justify-end"
           >
             {/* Ambient Rim Light */}
-            <div className="absolute inset-0 bg-gradient-to-t from-accent/25 via-accent/20 to-transparent blur-2xl rounded-full opacity-60 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-accent/20 via-accent/15 to-transparent blur-2xl rounded-full opacity-60 pointer-events-none" />
 
-            <div className="relative w-full aspect-[3.2/3.8] flex items-center justify-center">
+            <div className="relative w-full max-h-[480px] flex items-end justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={profilePhotoUrl}
+                src={profilePhotoUrlLazy}
                 alt={site.fullName || "Hilarus Gbagoule — Creative Technologist"}
-                className="w-full h-full object-contain object-bottom portrait-3d-mask portrait-glow-filter"
+                className={`w-full h-auto max-h-[460px] ${
+                  heroFit === "cover" ? "object-cover" : "object-contain"
+                } object-bottom portrait-3d-mask portrait-glow-filter`}
                 onError={(e) => {
-                  e.currentTarget.src = "/me.jpg";
+                  e.currentTarget.src = "/hilarus.png";
                 }}
               />
             </div>
@@ -168,11 +177,11 @@ export function Hero() {
 
           {/* 4. SOCIAL LINKS */}
           <motion.nav
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.35 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
             aria-label="Social profiles mobile"
-            className="flex flex-wrap items-center justify-center gap-2 pt-1 z-30"
+            className="flex flex-wrap items-center justify-center gap-1.5 pt-1 z-30"
           >
             {[
               {
@@ -230,23 +239,27 @@ export function Hero() {
               y: photoParallax,
               rotateX: tilt.rotateX,
               rotateY: tilt.rotateY,
+              width: `min(100%, ${heroWidth}px)`,
+              maxWidth: "100%",
             }}
             initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
+            animate={{ opacity: 1, scale: heroScale }}
             transition={{ duration: 0.9, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="relative -my-10 md:-my-14 lg:-my-18 z-20 w-[clamp(280px,38vw,450px)] max-w-full pointer-events-none select-none"
+            className="relative -my-10 md:-my-14 lg:-my-18 z-20 mx-auto pointer-events-none select-none flex flex-col items-center justify-end"
           >
             {/* Ambient Rim Light behind portrait */}
-            <div className="absolute inset-0 -inset-x-4 bg-gradient-to-t from-accent/20 via-accent/30 to-transparent blur-2xl rounded-full opacity-60 pointer-events-none" />
+            <div className="absolute inset-0 -inset-x-8 bg-gradient-to-t from-accent/20 via-accent/30 to-transparent blur-3xl rounded-full opacity-70 pointer-events-none" />
 
-            <div className="relative w-full aspect-[3.2/3.8] flex items-center justify-center">
+            <div className="relative w-full max-h-[680px] flex items-end justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={profilePhotoUrl}
+                src={profilePhotoUrlLazy}
                 alt={site.fullName || "Hilarus Gbagoule — Creative Technologist"}
-                className="w-full h-full object-contain object-bottom portrait-3d-mask portrait-glow-filter transition-transform duration-500"
+                className={`w-full h-auto max-h-[660px] ${
+                  heroFit === "cover" ? "object-cover" : "object-contain"
+                } object-bottom portrait-3d-mask portrait-glow-filter transition-transform duration-500`}
                 onError={(e) => {
-                  e.currentTarget.src = "/me.jpg";
+                  e.currentTarget.src = "/hilarus.png";
                 }}
               />
             </div>

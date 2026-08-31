@@ -37,6 +37,10 @@ export interface SiteMetadataConfig {
   ogDescription?: string;
   ogImage?: string;
   profileImage?: string;
+  heroImageWidth?: number;
+  heroImageScale?: number;
+  heroImageFit?: "contain" | "cover" | "natural";
+  heroImageAspect?: "auto" | "portrait" | "square" | "tall";
   twitterCard?: "summary" | "summary_large_image";
   siteUrl?: string;
   author?: string;
@@ -105,7 +109,11 @@ export const defaultSiteMetadata: SiteMetadataConfig = {
   ogDescription:
     "Profil officiel de Hilarus Gbagoule. Design d'interfaces haute fidélité, ingénierie logicielle robuste et intégrations d'intelligence artificielle multimodale.",
   ogImage: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&auto=format&fit=crop",
-  profileImage: "/me.jpg",
+  profileImage: "/hilarus.png",
+  heroImageWidth: 540,
+  heroImageScale: 1.05,
+  heroImageFit: "contain",
+  heroImageAspect: "auto",
   twitterCard: "summary_large_image",
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://hilarus.dev",
   author: "Hilarus Gbagoule",

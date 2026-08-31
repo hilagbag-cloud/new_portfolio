@@ -29,6 +29,7 @@ import {
   HelpCircle,
   FileCheck,
   Crop,
+  Maximize2,
   Palette,
   Sun,
   Moon,
@@ -185,6 +186,17 @@ export function SiteSettingsManager() {
   // Studio modal for hero image
   const [isHeroStudioOpen, setIsHeroStudioOpen] = useState(false);
 
+  // Hero Image custom width & scaling parameters
+  const [heroImageWidth, setHeroImageWidth] = useState(
+    defaultSiteMetadata.heroImageWidth || 560
+  );
+  const [heroImageScale, setHeroImageScale] = useState(
+    defaultSiteMetadata.heroImageScale || 1.05
+  );
+  const [heroImageFit, setHeroImageFit] = useState<"contain" | "cover" | "natural">(
+    defaultSiteMetadata.heroImageFit || "contain"
+  );
+
   // Status state
   const [loading, setLoading] = useState(false);
   const [seeding, setSeeding] = useState(false);
@@ -216,6 +228,9 @@ export function SiteSettingsManager() {
           if (data.author) setAuthor(data.author);
           if (data.positioning) setPositioning(data.positioning);
           if (data.profileImage) setProfileImage(data.profileImage);
+          if (data.heroImageWidth !== undefined) setHeroImageWidth(data.heroImageWidth);
+          if (data.heroImageScale !== undefined) setHeroImageScale(data.heroImageScale);
+          if (data.heroImageFit) setHeroImageFit(data.heroImageFit);
           if (data.tags) {
             setTags(
               Array.isArray(data.tags) ? data.tags.join(", ") : data.tags
@@ -308,6 +323,9 @@ export function SiteSettingsManager() {
         ogDescription: ogDescription || metaDescription,
         ogImage,
         profileImage,
+        heroImageWidth: Number(heroImageWidth) || 560,
+        heroImageScale: Number(heroImageScale) || 1.0,
+        heroImageFit,
         twitterCard,
         siteUrl,
         author,
@@ -1332,6 +1350,106 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
               aspectRatio="1/1"
               showCropTool={true}
             />
+
+            {/* Custom Width & Scaling Controls for Hero */}
+            <div className="mt-4 rounded-xl border border-accent/20 bg-accent/5 p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Maximize2 size={16} className="text-accent" />
+                  <span className="text-xs font-bold text-text uppercase tracking-wider font-mono">
+                    Largeur & Dimensions de la photo Hero
+                  </span>
+                </div>
+                <span className="font-mono text-xs font-bold text-accent bg-accent/15 px-2 py-0.5 rounded-md border border-accent/30">
+                  {heroImageWidth}px • {Math.round(heroImageScale * 100)}%
+                </span>
+              </div>
+
+              {/* Width Slider */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs font-mono text-muted">
+                  <span>Largeur max (Bureau / Desktop)</span>
+                  <span className="text-accent font-semibold">{heroImageWidth} px</span>
+                </div>
+                <input
+                  type="range"
+                  min="320"
+                  max="850"
+                  step="10"
+                  value={heroImageWidth}
+                  onChange={(e) => setHeroImageWidth(Number(e.target.value))}
+                  className="w-full accent-accent cursor-pointer h-2 bg-surface rounded-lg"
+                />
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {[
+                    { label: "Compact", width: 420 },
+                    { label: "Standard", width: 500 },
+                    { label: "Large (Recommandé)", width: 580 },
+                    { label: "Très Large", width: 680 },
+                    { label: "Plein Écran", width: 820 },
+                  ].map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => setHeroImageWidth(preset.width)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-mono transition-colors ${
+                        heroImageWidth === preset.width
+                          ? "bg-accent text-bg font-bold shadow-sm"
+                          : "bg-surface border border-border text-muted hover:text-text hover:border-accent/40"
+                      }`}
+                    >
+                      {preset.label} ({preset.width}px)
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Scale / Zoom Slider */}
+              <div className="space-y-1.5 pt-2 border-t border-white/5">
+                <div className="flex justify-between text-xs font-mono text-muted">
+                  <span>Échelle visuelle / Zoom</span>
+                  <span className="text-accent font-semibold">{Math.round(heroImageScale * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.8"
+                  max="1.6"
+                  step="0.05"
+                  value={heroImageScale}
+                  onChange={(e) => setHeroImageScale(Number(e.target.value))}
+                  className="w-full accent-accent cursor-pointer h-2 bg-surface rounded-lg"
+                />
+              </div>
+
+              {/* Fit Mode */}
+              <div className="space-y-1.5 pt-2 border-t border-white/5">
+                <label className="text-xs font-mono text-muted block">Mode d&apos;ajustement</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setHeroImageFit("contain")}
+                    className={`px-3 py-2 rounded-xl text-xs font-mono flex items-center justify-center gap-1.5 transition-colors border ${
+                      heroImageFit === "contain"
+                        ? "border-accent bg-accent/20 text-accent font-bold"
+                        : "border-border bg-surface text-muted hover:text-text"
+                    }`}
+                  >
+                    <span>Naturel / Proportions réelles (Contain)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHeroImageFit("cover")}
+                    className={`px-3 py-2 rounded-xl text-xs font-mono flex items-center justify-center gap-1.5 transition-colors border ${
+                      heroImageFit === "cover"
+                        ? "border-accent bg-accent/20 text-accent font-bold"
+                        : "border-border bg-surface text-muted hover:text-text"
+                    }`}
+                  >
+                    <span>Remplir le cadre (Cover)</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Positioning */}

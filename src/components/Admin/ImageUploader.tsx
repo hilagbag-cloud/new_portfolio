@@ -15,9 +15,9 @@ interface ImageUploaderProps {
 }
 
 /**
- * Resizes and compresses an image file to an optimized Base64 data URL
+ * Resizes and optimizes an image file with high-fidelity resolution and PNG transparency support
  */
-function compressImage(file: File, maxWidth = 1280, maxHeight = 800, quality = 0.82): Promise<string> {
+function compressImage(file: File, maxWidth = 2560, maxHeight = 1920, quality = 0.94): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (readerEvent) => {
@@ -32,7 +32,7 @@ function compressImage(file: File, maxWidth = 1280, maxHeight = 800, quality = 0
             width = maxWidth;
           } else {
             width = Math.round((width * maxHeight) / height);
-            maxHeight = height;
+            height = Math.round(height);
           }
         }
 
@@ -47,6 +47,19 @@ function compressImage(file: File, maxWidth = 1280, maxHeight = 800, quality = 0
         }
 
         ctx.drawImage(img, 0, 0, width, height);
+
+        // Keep PNG transparency if file is PNG or transparent
+        if (file.type === "image/png") {
+          try {
+            const pngUrl = canvas.toDataURL("image/png");
+            if (pngUrl.length < 4.5 * 1024 * 1024) {
+              resolve(pngUrl);
+              return;
+            }
+          } catch {
+            // fallback
+          }
+        }
 
         // Prefer image/webp if supported, fallback to jpeg
         try {
