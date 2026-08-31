@@ -573,6 +573,24 @@ body {
   box-shadow: 0 8px 24px -4px rgba(255, 255, 255, 0.35);
 }
 
+.social-floating-list .icon-content .link[data-social="youtube"]:hover {
+  color: #FF0000;
+  border-color: #FF0000;
+  box-shadow: 0 8px 24px -4px rgba(255, 0, 0, 0.45);
+}
+
+.social-floating-list .icon-content .link[data-social="discord"]:hover {
+  color: #5865F2;
+  border-color: #5865F2;
+  box-shadow: 0 8px 24px -4px rgba(88, 101, 242, 0.45);
+}
+
+.social-floating-list .icon-content .link[data-social="tiktok"]:hover {
+  color: #00f2fe;
+  border-color: #00f2fe;
+  box-shadow: 0 8px 24px -4px rgba(0, 242, 254, 0.45);
+}
+
 .social-floating-list .icon-content .link[data-social="email"]:hover {
   color: var(--color-accent);
   border-color: var(--color-accent);

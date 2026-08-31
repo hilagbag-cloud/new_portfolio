@@ -188,16 +188,6 @@ export function Hero() {
           >
             {[
               {
-                id: "dribbble",
-                label: "DRIBBBLE",
-                href: cmsConfig?.socials?.dribbble || "https://dribbble.com",
-              },
-              {
-                id: "behance",
-                label: "BEHANCE",
-                href: cmsConfig?.socials?.behance || "https://behance.net",
-              },
-              {
                 id: "linkedin",
                 label: "LINKEDIN",
                 href: cmsConfig?.socials?.linkedin || "https://linkedin.com/in/hilarus-gbagoule-6a926b426",
@@ -207,8 +197,49 @@ export function Hero() {
                 label: "GITHUB",
                 href: cmsConfig?.socials?.github || "https://github.com",
               },
+              {
+                id: "twitter",
+                label: "TWITTER",
+                href: cmsConfig?.socials?.twitter || "https://twitter.com",
+              },
+              {
+                id: "instagram",
+                label: "INSTAGRAM",
+                href: cmsConfig?.socials?.instagram || "",
+              },
+              {
+                id: "facebook",
+                label: "FACEBOOK",
+                href: cmsConfig?.socials?.facebook || "",
+              },
+              {
+                id: "threads",
+                label: "THREADS",
+                href: cmsConfig?.socials?.threads || "",
+              },
+              {
+                id: "youtube",
+                label: "YOUTUBE",
+                href: cmsConfig?.socials?.youtube || "",
+              },
+              {
+                id: "dribbble",
+                label: "DRIBBBLE",
+                href: cmsConfig?.socials?.dribbble || "https://dribbble.com",
+              },
+              {
+                id: "behance",
+                label: "BEHANCE",
+                href: cmsConfig?.socials?.behance || "https://behance.net",
+              },
             ]
-              .filter((item) => Boolean(item.href))
+              .filter((item) => {
+                const isVisible =
+                  cmsConfig?.socialVisibility?.[item.id] !== undefined
+                    ? Boolean(cmsConfig.socialVisibility[item.id])
+                    : true;
+                return isVisible && Boolean(item.href);
+              })
               .map((social) => (
                 <a
                   key={social.id}
@@ -292,6 +323,41 @@ export function Hero() {
           >
             {[
               {
+                id: "linkedin",
+                label: "LINKEDIN",
+                href: cmsConfig?.socials?.linkedin || "https://linkedin.com/in/hilarus-gbagoule-6a926b426",
+              },
+              {
+                id: "github",
+                label: "GITHUB",
+                href: cmsConfig?.socials?.github || "https://github.com",
+              },
+              {
+                id: "twitter",
+                label: "TWITTER",
+                href: cmsConfig?.socials?.twitter || "https://twitter.com",
+              },
+              {
+                id: "instagram",
+                label: "INSTAGRAM",
+                href: cmsConfig?.socials?.instagram || "",
+              },
+              {
+                id: "facebook",
+                label: "FACEBOOK",
+                href: cmsConfig?.socials?.facebook || "",
+              },
+              {
+                id: "threads",
+                label: "THREADS",
+                href: cmsConfig?.socials?.threads || "",
+              },
+              {
+                id: "youtube",
+                label: "YOUTUBE",
+                href: cmsConfig?.socials?.youtube || "",
+              },
+              {
                 id: "dribbble",
                 label: "DRIBBBLE",
                 href: cmsConfig?.socials?.dribbble || "https://dribbble.com",
@@ -301,23 +367,14 @@ export function Hero() {
                 label: "BEHANCE",
                 href: cmsConfig?.socials?.behance || "https://behance.net",
               },
-              {
-                id: "linkedin",
-                label: "LINKEDIN",
-                href: cmsConfig?.socials?.linkedin || "https://linkedin.com/in/hilarus-gbagoule-6a926b426",
-              },
-              {
-                id: "twitter",
-                label: "TWITTER",
-                href: cmsConfig?.socials?.twitter || "https://twitter.com",
-              },
-              {
-                id: "github",
-                label: "GITHUB",
-                href: cmsConfig?.socials?.github || "https://github.com",
-              },
             ]
-              .filter((item) => Boolean(item.href))
+              .filter((item) => {
+                const isVisible =
+                  cmsConfig?.socialVisibility?.[item.id] !== undefined
+                    ? Boolean(cmsConfig.socialVisibility[item.id])
+                    : true;
+                return isVisible && Boolean(item.href);
+              })
               .map((social) => (
                 <a
                   key={social.id}

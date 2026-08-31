@@ -14,7 +14,8 @@ import {
   Calendar,
   Phone,
   Globe,
-  ExternalLink,
+  Youtube,
+  MessageSquare,
   type LucideIcon,
 } from "lucide-react";
 
@@ -31,13 +32,17 @@ export function SocialFloatingTooltipList({ className = "" }: { className?: stri
 
   const socials = cmsConfig?.socials || {};
   const contactChannels = cmsConfig?.contactChannels || {};
+  const visibility = cmsConfig?.socialVisibility || {};
+
+  const isPublic = (id: string, defaultVal = true) =>
+    visibility[id] !== undefined ? Boolean(visibility[id]) : defaultVal;
 
   // Build complete list of configured channels dynamically
   const items: SocialItem[] = [];
 
   // WhatsApp
   const whatsappVal = contactChannels.whatsapp || socials.whatsapp;
-  if (whatsappVal) {
+  if (whatsappVal && isPublic("whatsapp", true)) {
     const cleanWa = whatsappVal.startsWith("http")
       ? whatsappVal
       : `https://wa.me/${whatsappVal.replace(/[^0-9]/g, "")}`;
@@ -52,7 +57,7 @@ export function SocialFloatingTooltipList({ className = "" }: { className?: stri
 
   // Telegram
   const telegramVal = contactChannels.telegram || socials.telegram;
-  if (telegramVal) {
+  if (telegramVal && isPublic("telegram", true)) {
     const cleanTg = telegramVal.startsWith("http")
       ? telegramVal
       : `https://t.me/${telegramVal.replace("@", "")}`;
@@ -67,7 +72,7 @@ export function SocialFloatingTooltipList({ className = "" }: { className?: stri
 
   // LinkedIn
   const linkedinVal = contactChannels.linkedin || socials.linkedin || "https://linkedin.com/in/hilarus-gbagoule-6a926b426";
-  if (linkedinVal) {
+  if (linkedinVal && isPublic("linkedin", true)) {
     items.push({
       id: "linkedin",
       name: "LinkedIn",
@@ -79,7 +84,7 @@ export function SocialFloatingTooltipList({ className = "" }: { className?: stri
 
   // GitHub
   const githubVal = contactChannels.github || socials.github;
-  if (githubVal) {
+  if (githubVal && isPublic("github", true)) {
     items.push({
       id: "github",
       name: "GitHub",
@@ -89,33 +94,9 @@ export function SocialFloatingTooltipList({ className = "" }: { className?: stri
     });
   }
 
-  // Dribbble
-  const dribbbleVal = socials.dribbble;
-  if (dribbbleVal) {
-    items.push({
-      id: "dribbble",
-      name: "Dribbble",
-      url: dribbbleVal,
-      dataSocial: "dribbble",
-      icon: Dribbble,
-    });
-  }
-
-  // Behance
-  const behanceVal = socials.behance;
-  if (behanceVal) {
-    items.push({
-      id: "behance",
-      name: "Behance",
-      url: behanceVal,
-      dataSocial: "behance",
-      icon: Globe,
-    });
-  }
-
   // Twitter / X
   const twitterVal = contactChannels.twitter || socials.twitter;
-  if (twitterVal) {
+  if (twitterVal && isPublic("twitter", true)) {
     items.push({
       id: "twitter",
       name: "Twitter / X",
@@ -127,7 +108,7 @@ export function SocialFloatingTooltipList({ className = "" }: { className?: stri
 
   // Instagram
   const instagramVal = contactChannels.instagram || socials.instagram;
-  if (instagramVal) {
+  if (instagramVal && isPublic("instagram", true)) {
     items.push({
       id: "instagram",
       name: "Instagram",
@@ -139,7 +120,7 @@ export function SocialFloatingTooltipList({ className = "" }: { className?: stri
 
   // Facebook
   const facebookVal = contactChannels.facebook || socials.facebook;
-  if (facebookVal) {
+  if (facebookVal && isPublic("facebook", true)) {
     items.push({
       id: "facebook",
       name: "Facebook",
@@ -151,7 +132,7 @@ export function SocialFloatingTooltipList({ className = "" }: { className?: stri
 
   // Threads
   const threadsVal = contactChannels.threads || socials.threads;
-  if (threadsVal) {
+  if (threadsVal && isPublic("threads", true)) {
     items.push({
       id: "threads",
       name: "Threads",
@@ -161,9 +142,69 @@ export function SocialFloatingTooltipList({ className = "" }: { className?: stri
     });
   }
 
+  // YouTube
+  const youtubeVal = contactChannels.youtube || socials.youtube;
+  if (youtubeVal && isPublic("youtube", false)) {
+    items.push({
+      id: "youtube",
+      name: "YouTube",
+      url: youtubeVal,
+      dataSocial: "youtube",
+      icon: Youtube,
+    });
+  }
+
+  // Discord
+  const discordVal = contactChannels.discord || socials.discord;
+  if (discordVal && isPublic("discord", false)) {
+    items.push({
+      id: "discord",
+      name: "Discord",
+      url: discordVal,
+      dataSocial: "discord",
+      icon: MessageSquare,
+    });
+  }
+
+  // TikTok
+  const tiktokVal = contactChannels.tiktok || socials.tiktok;
+  if (tiktokVal && isPublic("tiktok", false)) {
+    items.push({
+      id: "tiktok",
+      name: "TikTok",
+      url: tiktokVal,
+      dataSocial: "tiktok",
+      icon: Globe,
+    });
+  }
+
+  // Dribbble
+  const dribbbleVal = socials.dribbble;
+  if (dribbbleVal && isPublic("dribbble", true)) {
+    items.push({
+      id: "dribbble",
+      name: "Dribbble",
+      url: dribbbleVal,
+      dataSocial: "dribbble",
+      icon: Dribbble,
+    });
+  }
+
+  // Behance
+  const behanceVal = socials.behance;
+  if (behanceVal && isPublic("behance", true)) {
+    items.push({
+      id: "behance",
+      name: "Behance",
+      url: behanceVal,
+      dataSocial: "behance",
+      icon: Globe,
+    });
+  }
+
   // Calendly / Cal.com
   const calendlyVal = contactChannels.calendly;
-  if (calendlyVal) {
+  if (calendlyVal && isPublic("calendly", true)) {
     items.push({
       id: "calendly",
       name: "Calendly",
@@ -173,9 +214,22 @@ export function SocialFloatingTooltipList({ className = "" }: { className?: stri
     });
   }
 
+  // Téléphone
+  const phoneVal = contactChannels.phone;
+  if (phoneVal && isPublic("phone", true)) {
+    const cleanPhone = phoneVal.replace(/[^0-9+]/g, "");
+    items.push({
+      id: "phone",
+      name: "Téléphone",
+      url: `tel:${cleanPhone}`,
+      dataSocial: "phone",
+      icon: Phone,
+    });
+  }
+
   // Email direct
   const emailVal = contactChannels.email || cmsConfig?.contactEmail;
-  if (emailVal) {
+  if (emailVal && isPublic("email", true)) {
     items.push({
       id: "email",
       name: "Email direct",

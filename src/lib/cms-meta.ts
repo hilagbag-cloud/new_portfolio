@@ -13,6 +13,9 @@ export interface SocialLinksConfig {
   threads?: string;
   whatsapp?: string;
   telegram?: string;
+  youtube?: string;
+  tiktok?: string;
+  discord?: string;
 }
 
 export interface ContactChannelsConfig {
@@ -26,7 +29,30 @@ export interface ContactChannelsConfig {
   threads?: string;
   twitter?: string;
   github?: string;
+  youtube?: string;
+  tiktok?: string;
+  discord?: string;
   calendly?: string;
+}
+
+export interface SocialVisibilityConfig {
+  linkedin?: boolean;
+  github?: boolean;
+  twitter?: boolean;
+  instagram?: boolean;
+  facebook?: boolean;
+  threads?: boolean;
+  whatsapp?: boolean;
+  telegram?: boolean;
+  dribbble?: boolean;
+  behance?: boolean;
+  youtube?: boolean;
+  tiktok?: boolean;
+  discord?: boolean;
+  email?: boolean;
+  phone?: boolean;
+  calendly?: boolean;
+  [key: string]: boolean | undefined;
 }
 
 export interface SiteMetadataConfig {
@@ -51,6 +77,7 @@ export interface SiteMetadataConfig {
   contactEmail?: string;
   socials?: SocialLinksConfig;
   contactChannels?: ContactChannelsConfig;
+  socialVisibility?: SocialVisibilityConfig;
 
   // Personal Identity & Google Knowledge Graph
   givenName?: string;
@@ -169,6 +196,10 @@ export const defaultSiteMetadata: SiteMetadataConfig = {
     facebook: "https://facebook.com",
     threads: "https://threads.net",
     whatsapp: "https://wa.me/22900000000",
+    telegram: "",
+    youtube: "",
+    tiktok: "",
+    discord: "",
   },
   contactChannels: {
     email: "hilaruskazak@gmail.com",
@@ -181,6 +212,28 @@ export const defaultSiteMetadata: SiteMetadataConfig = {
     github: "https://github.com",
     phone: "",
     calendly: "",
+    telegram: "",
+    youtube: "",
+    tiktok: "",
+    discord: "",
+  },
+  socialVisibility: {
+    linkedin: true,
+    github: true,
+    twitter: true,
+    instagram: true,
+    facebook: true,
+    threads: true,
+    whatsapp: true,
+    telegram: true,
+    dribbble: true,
+    behance: true,
+    youtube: false,
+    tiktok: false,
+    discord: false,
+    email: true,
+    phone: true,
+    calendly: true,
   },
 };
 
@@ -224,9 +277,14 @@ export function buildJsonLdSchema(config: SiteMetadataConfig) {
   const alumni = config.alumniOf || "EPITA — École pour l'informatique et les techniques avancées";
   const knowsAbout = config.knowsAbout?.length ? config.knowsAbout : defaultSiteMetadata.knowsAbout!;
 
-  const sameAsLinks = Object.values(config.socials || defaultSiteMetadata.socials || {}).filter(
-    (url): url is string => typeof url === "string" && url.trim().startsWith("http")
-  );
+  const visibility = config.socialVisibility || defaultSiteMetadata.socialVisibility || {};
+  const socialsMap = config.socials || defaultSiteMetadata.socials || {};
+  const sameAsLinks = Object.entries(socialsMap)
+    .filter(([key, url]) => {
+      const isVisible = visibility[key] !== false;
+      return isVisible && typeof url === "string" && url.trim().startsWith("http");
+    })
+    .map(([, url]) => url as string);
 
   return {
     "@context": "https://schema.org",

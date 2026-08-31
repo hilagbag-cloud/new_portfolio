@@ -16,6 +16,8 @@ export type Project = {
   externalUrl?: string;
   caseStudy?: boolean;
   published: boolean;
+  createdAt?: string | number | Date;
+  updatedAt?: string | number | Date;
 };
 
 export const projects: Project[] = [

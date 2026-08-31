@@ -33,6 +33,8 @@ export type Milestone = {
   };
   progress: number; // 0 -> 1 along the journey
   published: boolean;
+  createdAt?: string | number | Date;
+  updatedAt?: string | number | Date;
 };
 
 export const milestones: Milestone[] = [

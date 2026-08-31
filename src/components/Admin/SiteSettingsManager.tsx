@@ -6,6 +6,7 @@ import { db, resolvedFirebaseConfig } from "@/lib/firebase";
 import {
   defaultSiteMetadata,
   type SiteMetadataConfig,
+  type SocialVisibilityConfig,
   buildJsonLdSchema,
 } from "@/lib/cms-meta";
 import {
@@ -33,6 +34,20 @@ import {
   Palette,
   Sun,
   Moon,
+  Eye,
+  EyeOff,
+  Youtube,
+  MessageSquare,
+  Linkedin,
+  Github,
+  Twitter,
+  Instagram,
+  Facebook,
+  Send,
+  MessageCircle,
+  Phone,
+  Calendar,
+  Mail,
 } from "lucide-react";
 import { seedInitialCmsData } from "@/lib/cms-seed";
 import { ImageUploader } from "./ImageUploader";
@@ -174,6 +189,15 @@ export function SiteSettingsManager() {
   const [telegramUrl, setTelegramUrl] = useState(
     defaultSiteMetadata.socials?.telegram || ""
   );
+  const [youtubeUrl, setYoutubeUrl] = useState(
+    defaultSiteMetadata.socials?.youtube || ""
+  );
+  const [tiktokUrl, setTiktokUrl] = useState(
+    defaultSiteMetadata.socials?.tiktok || ""
+  );
+  const [discordUrl, setDiscordUrl] = useState(
+    defaultSiteMetadata.socials?.discord || ""
+  );
   const [whatsappUrl, setWhatsappUrl] = useState(
     defaultSiteMetadata.contactChannels?.whatsapp || ""
   );
@@ -183,6 +207,43 @@ export function SiteSettingsManager() {
   const [calendlyUrl, setCalendlyUrl] = useState(
     defaultSiteMetadata.contactChannels?.calendly || ""
   );
+
+  // Socials Visibility State (Public vs Hidden checkboxes)
+  const [socialVisibility, setSocialVisibility] = useState<SocialVisibilityConfig>({
+    linkedin: true,
+    github: true,
+    twitter: true,
+    instagram: true,
+    facebook: true,
+    threads: true,
+    whatsapp: true,
+    telegram: true,
+    dribbble: true,
+    behance: true,
+    youtube: false,
+    tiktok: false,
+    discord: false,
+    email: true,
+    phone: true,
+    calendly: true,
+  });
+
+  const toggleSocialVisibility = (key: string) => {
+    setSocialVisibility((prev) => ({
+      ...prev,
+      [key]: prev[key] !== undefined ? !prev[key] : false,
+    }));
+  };
+
+  const setAllSocialVisibility = (visible: boolean) => {
+    setSocialVisibility((prev) => {
+      const updated: SocialVisibilityConfig = {};
+      Object.keys(prev).forEach((k) => {
+        updated[k] = visible;
+      });
+      return updated;
+    });
+  };
 
   // Studio modal for hero image
   const [isHeroStudioOpen, setIsHeroStudioOpen] = useState(false);
@@ -285,29 +346,45 @@ export function SiteSettingsManager() {
           }
           if (data.bioLong) setBioLong(data.bioLong);
 
+          if (data.socialVisibility) {
+            setSocialVisibility((prev) => ({
+              ...prev,
+              ...data.socialVisibility,
+            }));
+          }
+
           if (data.socials) {
-            if (data.socials.dribbble) setDribbbleUrl(data.socials.dribbble);
-            if (data.socials.behance) setBehanceUrl(data.socials.behance);
-            if (data.socials.linkedin) setLinkedinUrl(data.socials.linkedin);
-            if (data.socials.twitter) setTwitterUrl(data.socials.twitter);
-            if (data.socials.github) setGithubUrl(data.socials.github);
-            if (data.socials.instagram) setInstagramUrl(data.socials.instagram);
-            if (data.socials.facebook) setFacebookUrl(data.socials.facebook);
-            if (data.socials.threads) setThreadsUrl(data.socials.threads);
-            if (data.socials.telegram) setTelegramUrl(data.socials.telegram);
+            if (data.socials.dribbble !== undefined) setDribbbleUrl(data.socials.dribbble);
+            if (data.socials.behance !== undefined) setBehanceUrl(data.socials.behance);
+            if (data.socials.linkedin !== undefined) setLinkedinUrl(data.socials.linkedin);
+            if (data.socials.twitter !== undefined) setTwitterUrl(data.socials.twitter);
+            if (data.socials.github !== undefined) setGithubUrl(data.socials.github);
+            if (data.socials.instagram !== undefined) setInstagramUrl(data.socials.instagram);
+            if (data.socials.facebook !== undefined) setFacebookUrl(data.socials.facebook);
+            if (data.socials.threads !== undefined) setThreadsUrl(data.socials.threads);
+            if (data.socials.telegram !== undefined) setTelegramUrl(data.socials.telegram);
+            if (data.socials.youtube !== undefined) setYoutubeUrl(data.socials.youtube);
+            if (data.socials.tiktok !== undefined) setTiktokUrl(data.socials.tiktok);
+            if (data.socials.discord !== undefined) setDiscordUrl(data.socials.discord);
           }
 
           if (data.contactChannels) {
-            if (data.contactChannels.whatsapp)
+            if (data.contactChannels.whatsapp !== undefined)
               setWhatsappUrl(data.contactChannels.whatsapp);
-            if (data.contactChannels.telegram)
+            if (data.contactChannels.telegram !== undefined)
               setTelegramUrl(data.contactChannels.telegram);
-            if (data.contactChannels.phone)
+            if (data.contactChannels.phone !== undefined)
               setPhoneVal(data.contactChannels.phone);
-            if (data.contactChannels.calendly)
+            if (data.contactChannels.calendly !== undefined)
               setCalendlyUrl(data.contactChannels.calendly);
-            if (data.contactChannels.email)
+            if (data.contactChannels.email !== undefined)
               setContactEmail(data.contactChannels.email);
+            if (data.contactChannels.youtube !== undefined)
+              setYoutubeUrl(data.contactChannels.youtube);
+            if (data.contactChannels.tiktok !== undefined)
+              setTiktokUrl(data.contactChannels.tiktok);
+            if (data.contactChannels.discord !== undefined)
+              setDiscordUrl(data.contactChannels.discord);
           }
         }
       } catch (err) {
@@ -398,6 +475,7 @@ export function SiteSettingsManager() {
           .filter(Boolean),
         bioLong,
 
+        socialVisibility,
         socials: {
           dribbble: dribbbleUrl,
           behance: behanceUrl,
@@ -409,6 +487,9 @@ export function SiteSettingsManager() {
           threads: threadsUrl,
           whatsapp: whatsappUrl,
           telegram: telegramUrl,
+          youtube: youtubeUrl,
+          tiktok: tiktokUrl,
+          discord: discordUrl,
         },
         contactChannels: {
           email: contactEmail,
@@ -420,6 +501,9 @@ export function SiteSettingsManager() {
           threads: threadsUrl,
           twitter: twitterUrl,
           github: githubUrl,
+          youtube: youtubeUrl,
+          tiktok: tiktokUrl,
+          discord: discordUrl,
           phone: phoneVal,
           calendly: calendlyUrl,
         },
@@ -512,6 +596,7 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
     profileImage,
     siteLogo,
     ogImage,
+    socialVisibility,
     socials: {
       linkedin: linkedinUrl,
       github: githubUrl,
@@ -522,6 +607,10 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
       facebook: facebookUrl,
       threads: threadsUrl,
       whatsapp: whatsappUrl,
+      telegram: telegramUrl,
+      youtube: youtubeUrl,
+      tiktok: tiktokUrl,
+      discord: discordUrl,
     },
   });
 
@@ -894,17 +983,31 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between text-[11px] font-mono text-muted pt-1">
-                  <span>Sitemap XML :</span>
-                  <a
-                    href={`${siteUrl.replace(/\/$/, "")}/sitemap.xml`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-accent hover:underline flex items-center gap-1"
-                  >
-                    <span>/sitemap.xml</span>
-                    <ExternalLink size={11} />
-                  </a>
+                <div className="space-y-1.5 pt-1 text-[11px] font-mono text-muted border-t border-border/40">
+                  <div className="flex items-center justify-between">
+                    <span>Sitemap XML (Standard) :</span>
+                    <a
+                      href="/sitemap.xml"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-accent hover:underline flex items-center gap-1"
+                    >
+                      <span>/sitemap.xml</span>
+                      <ExternalLink size={11} />
+                    </a>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>API Sitemap Dynamique :</span>
+                    <a
+                      href="/api/sitemap"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-accent hover:underline flex items-center gap-1"
+                    >
+                      <span>/api/sitemap</span>
+                      <ExternalLink size={11} />
+                    </a>
+                  </div>
                 </div>
               </div>
 
@@ -1568,119 +1671,494 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
             </div>
           </div>
 
-          {/* Social Profiles Section */}
+          {/* Social Profiles & Visibility Control Section */}
           <div className="pt-4 border-t border-border/60 space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-surface/70 border border-border/70 p-3.5 rounded-xl">
               <div>
-                <h4 className="font-display text-sm font-bold text-text uppercase tracking-wider">
-                  Liens Sociaux Hero & Footer
+                <h4 className="font-display text-sm font-bold text-text uppercase tracking-wider flex items-center gap-2">
+                  <Share2 size={16} className="text-accent" />
+                  <span>Réseaux Sociaux & Visibilité Publique</span>
                 </h4>
-                <p className="text-xs text-muted">
-                  Ces liens s&apos;affichent sous votre nom dans le Hero et dans le pied de
-                  page.
+                <p className="text-xs text-muted mt-0.5">
+                  Cochez ou décochez les cases pour choisir exactement quels profils sont <strong>publics sur le site</strong> (Hero, Footer, Contact et Balises SEO).
                 </p>
+              </div>
+
+              {/* Quick actions: Show all / Hide all */}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setAllSocialVisibility(true)}
+                  className="px-2.5 py-1 text-[11px] font-semibold rounded-lg border border-accent/40 bg-accent/10 text-accent hover:bg-accent/20 transition-colors flex items-center gap-1"
+                >
+                  <Eye size={12} />
+                  <span>Tout afficher</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAllSocialVisibility(false)}
+                  className="px-2.5 py-1 text-[11px] font-semibold rounded-lg border border-border bg-surface text-muted hover:text-text transition-colors flex items-center gap-1"
+                >
+                  <EyeOff size={12} />
+                  <span>Tout masquer</span>
+                </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="eyebrow mb-1.5 block text-xs">LinkedIn URL</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* LinkedIn */}
+              <div className="p-3.5 rounded-xl border border-border bg-surface/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 font-display text-xs font-bold text-text">
+                    <Linkedin size={14} className="text-[#0A66C2]" />
+                    <span>LinkedIn</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => toggleSocialVisibility("linkedin")}
+                    className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all ${
+                      socialVisibility.linkedin !== false
+                        ? "bg-accent/15 border-accent text-accent shadow-sm"
+                        : "bg-surface border-border text-muted opacity-70"
+                    }`}
+                  >
+                    {socialVisibility.linkedin !== false ? (
+                      <>
+                        <Eye size={11} />
+                        <span>Public (Visible)</span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff size={11} />
+                        <span>Masqué</span>
+                      </>
+                    )}
+                  </button>
+                </div>
                 <input
                   type="url"
                   value={linkedinUrl}
                   onChange={(e) => setLinkedinUrl(e.target.value)}
-                  placeholder="https://linkedin.com/in/..."
-                  className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text focus-ring"
+                  placeholder="https://linkedin.com/in/votre-profil"
+                  className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-xs text-text focus-ring"
                 />
               </div>
 
-              <div>
-                <label className="eyebrow mb-1.5 block text-xs">GitHub URL</label>
+              {/* GitHub */}
+              <div className="p-3.5 rounded-xl border border-border bg-surface/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 font-display text-xs font-bold text-text">
+                    <Github size={14} className="text-white" />
+                    <span>GitHub</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => toggleSocialVisibility("github")}
+                    className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all ${
+                      socialVisibility.github !== false
+                        ? "bg-accent/15 border-accent text-accent shadow-sm"
+                        : "bg-surface border-border text-muted opacity-70"
+                    }`}
+                  >
+                    {socialVisibility.github !== false ? (
+                      <>
+                        <Eye size={11} />
+                        <span>Public (Visible)</span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff size={11} />
+                        <span>Masqué</span>
+                      </>
+                    )}
+                  </button>
+                </div>
                 <input
                   type="url"
                   value={githubUrl}
                   onChange={(e) => setGithubUrl(e.target.value)}
-                  placeholder="https://github.com/..."
-                  className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text focus-ring"
+                  placeholder="https://github.com/votre-pseudo"
+                  className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-xs text-text focus-ring"
                 />
               </div>
 
-              <div>
-                <label className="eyebrow mb-1.5 block text-xs">Dribbble URL</label>
-                <input
-                  type="url"
-                  value={dribbbleUrl}
-                  onChange={(e) => setDribbbleUrl(e.target.value)}
-                  placeholder="https://dribbble.com/..."
-                  className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text focus-ring"
-                />
-              </div>
-
-              <div>
-                <label className="eyebrow mb-1.5 block text-xs">Behance URL</label>
-                <input
-                  type="url"
-                  value={behanceUrl}
-                  onChange={(e) => setBehanceUrl(e.target.value)}
-                  placeholder="https://behance.net/..."
-                  className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text focus-ring"
-                />
-              </div>
-
-              <div>
-                <label className="eyebrow mb-1.5 block text-xs">Twitter / X URL</label>
-                <input
-                  type="url"
-                  value={twitterUrl}
-                  onChange={(e) => setTwitterUrl(e.target.value)}
-                  placeholder="https://twitter.com/..."
-                  className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text focus-ring"
-                />
-              </div>
-
-              <div>
-                <label className="eyebrow mb-1.5 block text-xs">Instagram URL</label>
-                <input
-                  type="url"
-                  value={instagramUrl}
-                  onChange={(e) => setInstagramUrl(e.target.value)}
-                  placeholder="https://instagram.com/..."
-                  className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text focus-ring"
-                />
-              </div>
-
-              <div>
-                <label className="eyebrow mb-1.5 block text-xs">Facebook URL</label>
+              {/* Facebook */}
+              <div className="p-3.5 rounded-xl border border-border bg-surface/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 font-display text-xs font-bold text-text">
+                    <Facebook size={14} className="text-[#1877F2]" />
+                    <span>Facebook</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => toggleSocialVisibility("facebook")}
+                    className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all ${
+                      socialVisibility.facebook !== false
+                        ? "bg-accent/15 border-accent text-accent shadow-sm"
+                        : "bg-surface border-border text-muted opacity-70"
+                    }`}
+                  >
+                    {socialVisibility.facebook !== false ? (
+                      <>
+                        <Eye size={11} />
+                        <span>Public (Visible)</span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff size={11} />
+                        <span>Masqué</span>
+                      </>
+                    )}
+                  </button>
+                </div>
                 <input
                   type="url"
                   value={facebookUrl}
                   onChange={(e) => setFacebookUrl(e.target.value)}
-                  placeholder="https://facebook.com/..."
-                  className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text focus-ring"
+                  placeholder="https://facebook.com/votre-page"
+                  className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-xs text-text focus-ring"
                 />
               </div>
 
-              <div>
-                <label className="eyebrow mb-1.5 block text-xs">Threads URL</label>
+              {/* Instagram */}
+              <div className="p-3.5 rounded-xl border border-border bg-surface/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 font-display text-xs font-bold text-text">
+                    <Instagram size={14} className="text-[#E4405F]" />
+                    <span>Instagram</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => toggleSocialVisibility("instagram")}
+                    className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all ${
+                      socialVisibility.instagram !== false
+                        ? "bg-accent/15 border-accent text-accent shadow-sm"
+                        : "bg-surface border-border text-muted opacity-70"
+                    }`}
+                  >
+                    {socialVisibility.instagram !== false ? (
+                      <>
+                        <Eye size={11} />
+                        <span>Public (Visible)</span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff size={11} />
+                        <span>Masqué</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <input
+                  type="url"
+                  value={instagramUrl}
+                  onChange={(e) => setInstagramUrl(e.target.value)}
+                  placeholder="https://instagram.com/votre-pseudo"
+                  className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-xs text-text focus-ring"
+                />
+              </div>
+
+              {/* Twitter / X */}
+              <div className="p-3.5 rounded-xl border border-border bg-surface/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 font-display text-xs font-bold text-text">
+                    <Twitter size={14} className="text-white" />
+                    <span>Twitter / X</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => toggleSocialVisibility("twitter")}
+                    className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all ${
+                      socialVisibility.twitter !== false
+                        ? "bg-accent/15 border-accent text-accent shadow-sm"
+                        : "bg-surface border-border text-muted opacity-70"
+                    }`}
+                  >
+                    {socialVisibility.twitter !== false ? (
+                      <>
+                        <Eye size={11} />
+                        <span>Public (Visible)</span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff size={11} />
+                        <span>Masqué</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <input
+                  type="url"
+                  value={twitterUrl}
+                  onChange={(e) => setTwitterUrl(e.target.value)}
+                  placeholder="https://twitter.com/votre-handle"
+                  className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-xs text-text focus-ring"
+                />
+              </div>
+
+              {/* Threads */}
+              <div className="p-3.5 rounded-xl border border-border bg-surface/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 font-display text-xs font-bold text-text">
+                    <Globe size={14} className="text-white" />
+                    <span>Threads</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => toggleSocialVisibility("threads")}
+                    className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all ${
+                      socialVisibility.threads !== false
+                        ? "bg-accent/15 border-accent text-accent shadow-sm"
+                        : "bg-surface border-border text-muted opacity-70"
+                    }`}
+                  >
+                    {socialVisibility.threads !== false ? (
+                      <>
+                        <Eye size={11} />
+                        <span>Public (Visible)</span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff size={11} />
+                        <span>Masqué</span>
+                      </>
+                    )}
+                  </button>
+                </div>
                 <input
                   type="url"
                   value={threadsUrl}
                   onChange={(e) => setThreadsUrl(e.target.value)}
-                  placeholder="https://threads.net/@..."
-                  className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text focus-ring"
+                  placeholder="https://threads.net/@votre-pseudo"
+                  className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-xs text-text focus-ring"
                 />
               </div>
 
-              <div>
-                <label className="eyebrow mb-1.5 block text-xs">
-                  Telegram URL / Pseudo
-                </label>
+              {/* Dribbble */}
+              <div className="p-3.5 rounded-xl border border-border bg-surface/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 font-display text-xs font-bold text-text">
+                    <Globe size={14} className="text-[#ea4c89]" />
+                    <span>Dribbble</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => toggleSocialVisibility("dribbble")}
+                    className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all ${
+                      socialVisibility.dribbble !== false
+                        ? "bg-accent/15 border-accent text-accent shadow-sm"
+                        : "bg-surface border-border text-muted opacity-70"
+                    }`}
+                  >
+                    {socialVisibility.dribbble !== false ? (
+                      <>
+                        <Eye size={11} />
+                        <span>Public (Visible)</span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff size={11} />
+                        <span>Masqué</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <input
+                  type="url"
+                  value={dribbbleUrl}
+                  onChange={(e) => setDribbbleUrl(e.target.value)}
+                  placeholder="https://dribbble.com/votre-portfolio"
+                  className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-xs text-text focus-ring"
+                />
+              </div>
+
+              {/* Behance */}
+              <div className="p-3.5 rounded-xl border border-border bg-surface/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 font-display text-xs font-bold text-text">
+                    <Globe size={14} className="text-[#1769ff]" />
+                    <span>Behance</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => toggleSocialVisibility("behance")}
+                    className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all ${
+                      socialVisibility.behance !== false
+                        ? "bg-accent/15 border-accent text-accent shadow-sm"
+                        : "bg-surface border-border text-muted opacity-70"
+                    }`}
+                  >
+                    {socialVisibility.behance !== false ? (
+                      <>
+                        <Eye size={11} />
+                        <span>Public (Visible)</span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff size={11} />
+                        <span>Masqué</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <input
+                  type="url"
+                  value={behanceUrl}
+                  onChange={(e) => setBehanceUrl(e.target.value)}
+                  placeholder="https://behance.net/votre-profil"
+                  className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-xs text-text focus-ring"
+                />
+              </div>
+
+              {/* YouTube */}
+              <div className="p-3.5 rounded-xl border border-border bg-surface/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 font-display text-xs font-bold text-text">
+                    <Youtube size={14} className="text-[#FF0000]" />
+                    <span>YouTube</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => toggleSocialVisibility("youtube")}
+                    className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all ${
+                      socialVisibility.youtube
+                        ? "bg-accent/15 border-accent text-accent shadow-sm"
+                        : "bg-surface border-border text-muted opacity-70"
+                    }`}
+                  >
+                    {socialVisibility.youtube ? (
+                      <>
+                        <Eye size={11} />
+                        <span>Public (Visible)</span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff size={11} />
+                        <span>Masqué</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <input
+                  type="url"
+                  value={youtubeUrl}
+                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  placeholder="https://youtube.com/@votre-chaine"
+                  className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-xs text-text focus-ring"
+                />
+              </div>
+
+              {/* TikTok */}
+              <div className="p-3.5 rounded-xl border border-border bg-surface/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 font-display text-xs font-bold text-text">
+                    <Globe size={14} className="text-[#00f2fe]" />
+                    <span>TikTok</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => toggleSocialVisibility("tiktok")}
+                    className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all ${
+                      socialVisibility.tiktok
+                        ? "bg-accent/15 border-accent text-accent shadow-sm"
+                        : "bg-surface border-border text-muted opacity-70"
+                    }`}
+                  >
+                    {socialVisibility.tiktok ? (
+                      <>
+                        <Eye size={11} />
+                        <span>Public (Visible)</span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff size={11} />
+                        <span>Masqué</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <input
+                  type="url"
+                  value={tiktokUrl}
+                  onChange={(e) => setTiktokUrl(e.target.value)}
+                  placeholder="https://tiktok.com/@votre-pseudo"
+                  className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-xs text-text focus-ring"
+                />
+              </div>
+
+              {/* Discord */}
+              <div className="p-3.5 rounded-xl border border-border bg-surface/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 font-display text-xs font-bold text-text">
+                    <MessageSquare size={14} className="text-[#5865F2]" />
+                    <span>Discord</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => toggleSocialVisibility("discord")}
+                    className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all ${
+                      socialVisibility.discord
+                        ? "bg-accent/15 border-accent text-accent shadow-sm"
+                        : "bg-surface border-border text-muted opacity-70"
+                    }`}
+                  >
+                    {socialVisibility.discord ? (
+                      <>
+                        <Eye size={11} />
+                        <span>Public (Visible)</span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff size={11} />
+                        <span>Masqué</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={discordUrl}
+                  onChange={(e) => setDiscordUrl(e.target.value)}
+                  placeholder="https://discord.gg/... ou pseudo#0000"
+                  className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-xs text-text focus-ring"
+                />
+              </div>
+
+              {/* Telegram */}
+              <div className="p-3.5 rounded-xl border border-border bg-surface/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 font-display text-xs font-bold text-text">
+                    <Send size={14} className="text-[#0088cc]" />
+                    <span>Telegram</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => toggleSocialVisibility("telegram")}
+                    className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all ${
+                      socialVisibility.telegram !== false
+                        ? "bg-accent/15 border-accent text-accent shadow-sm"
+                        : "bg-surface border-border text-muted opacity-70"
+                    }`}
+                  >
+                    {socialVisibility.telegram !== false ? (
+                      <>
+                        <Eye size={11} />
+                        <span>Public (Visible)</span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff size={11} />
+                        <span>Masqué</span>
+                      </>
+                    )}
+                  </button>
+                </div>
                 <input
                   type="text"
                   value={telegramUrl}
                   onChange={(e) => setTelegramUrl(e.target.value)}
                   placeholder="https://t.me/username ou @username"
-                  className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text focus-ring"
+                  className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-xs text-text focus-ring"
                 />
               </div>
             </div>
@@ -1688,53 +2166,128 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
 
           {/* Direct Messaging & Contact Channels Section */}
           <div className="pt-4 border-t border-border/60 space-y-4">
-            <div>
-              <h4 className="font-display text-sm font-bold text-text uppercase tracking-wider">
-                Canaux de Contact Direct (Section Contact)
+            <div className="bg-surface/70 border border-border/70 p-3.5 rounded-xl">
+              <h4 className="font-display text-sm font-bold text-text uppercase tracking-wider flex items-center gap-2">
+                <MessageCircle size={16} className="text-accent" />
+                <span>Canaux de Contact Direct (Section Contact)</span>
               </h4>
-              <p className="text-xs text-muted">
-                Boutons d&apos;action 1-clic pour discuter sur WhatsApp, appel téléphonique
-                ou prise de rendez-vous.
+              <p className="text-xs text-muted mt-0.5">
+                Boutons d&apos;action 1-clic pour discuter sur WhatsApp, appel téléphonique ou prise de rendez-vous avec gestion de la visibilité publique.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="eyebrow mb-1.5 block text-xs">
-                  WhatsApp (Lien wa.me ou numéro avec indicatif)
-                </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* WhatsApp */}
+              <div className="p-3.5 rounded-xl border border-border bg-surface/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 font-display text-xs font-bold text-text">
+                    <MessageCircle size={14} className="text-[#25D366]" />
+                    <span>WhatsApp</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => toggleSocialVisibility("whatsapp")}
+                    className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all ${
+                      socialVisibility.whatsapp !== false
+                        ? "bg-accent/15 border-accent text-accent shadow-sm"
+                        : "bg-surface border-border text-muted opacity-70"
+                    }`}
+                  >
+                    {socialVisibility.whatsapp !== false ? (
+                      <>
+                        <Eye size={11} />
+                        <span>Public (Visible)</span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff size={11} />
+                        <span>Masqué</span>
+                      </>
+                    )}
+                  </button>
+                </div>
                 <input
                   type="text"
                   value={whatsappUrl}
                   onChange={(e) => setWhatsappUrl(e.target.value)}
                   placeholder="https://wa.me/22900000000 ou +229..."
-                  className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text focus-ring"
+                  className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-xs text-text focus-ring"
                 />
               </div>
 
-              <div>
-                <label className="eyebrow mb-1.5 block text-xs">
-                  Numéro de Téléphone (Appel direct)
-                </label>
+              {/* Phone */}
+              <div className="p-3.5 rounded-xl border border-border bg-surface/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 font-display text-xs font-bold text-text">
+                    <Phone size={14} className="text-accent" />
+                    <span>Numéro de Téléphone</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => toggleSocialVisibility("phone")}
+                    className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all ${
+                      socialVisibility.phone !== false
+                        ? "bg-accent/15 border-accent text-accent shadow-sm"
+                        : "bg-surface border-border text-muted opacity-70"
+                    }`}
+                  >
+                    {socialVisibility.phone !== false ? (
+                      <>
+                        <Eye size={11} />
+                        <span>Public (Visible)</span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff size={11} />
+                        <span>Masqué</span>
+                      </>
+                    )}
+                  </button>
+                </div>
                 <input
                   type="tel"
                   value={phoneVal}
                   onChange={(e) => setPhoneVal(e.target.value)}
                   placeholder="+229 00 00 00 00"
-                  className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text focus-ring"
+                  className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-xs text-text focus-ring"
                 />
               </div>
 
-              <div className="sm:col-span-2">
-                <label className="eyebrow mb-1.5 block text-xs">
-                  Lien Calendly / Cal.com (Réservation d&apos;appel)
-                </label>
+              {/* Calendly */}
+              <div className="p-3.5 rounded-xl border border-border bg-surface/60 space-y-2 md:col-span-2">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 font-display text-xs font-bold text-text">
+                    <Calendar size={14} className="text-[#006BFF]" />
+                    <span>Calendly / Cal.com (Réservation d&apos;appel)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => toggleSocialVisibility("calendly")}
+                    className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all ${
+                      socialVisibility.calendly !== false
+                        ? "bg-accent/15 border-accent text-accent shadow-sm"
+                        : "bg-surface border-border text-muted opacity-70"
+                    }`}
+                  >
+                    {socialVisibility.calendly !== false ? (
+                      <>
+                        <Eye size={11} />
+                        <span>Public (Visible)</span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff size={11} />
+                        <span>Masqué</span>
+                      </>
+                    )}
+                  </button>
+                </div>
                 <input
                   type="url"
                   value={calendlyUrl}
                   onChange={(e) => setCalendlyUrl(e.target.value)}
                   placeholder="https://calendly.com/votrenom/30min"
-                  className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text focus-ring"
+                  className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-xs text-text focus-ring"
                 />
               </div>
             </div>
