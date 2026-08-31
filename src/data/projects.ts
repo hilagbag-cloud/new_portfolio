@@ -4,6 +4,7 @@ export type ProjectPreviewMode = "description" | "image";
 export type Project = {
   id: string;
   number: string;
+  order?: number;
   name: string;
   tagline?: string;
   shortDescription: string;
@@ -21,6 +22,7 @@ export const projects: Project[] = [
   {
     id: "bacpilot",
     number: "01",
+    order: 1,
     name: "BacPilot",
     tagline: "Orientation universitaire intelligente",
     shortDescription:
@@ -36,6 +38,7 @@ export const projects: Project[] = [
   {
     id: "gb-labs",
     number: "02",
+    order: 2,
     name: "GB Labs",
     tagline: "Data Pipeline & Multimodal AI Hub",
     shortDescription:
@@ -51,6 +54,7 @@ export const projects: Project[] = [
   {
     id: "adjastream",
     number: "03",
+    order: 3,
     name: "AdjaStream",
     tagline: "Plateforme culturelle & Streaming",
     shortDescription:
@@ -67,6 +71,7 @@ export const projects: Project[] = [
   {
     id: "ramadan",
     number: "04",
+    order: 4,
     name: "Ramadan Kareem — Lumina Agency",
     tagline: "Landing Page · Design",
     shortDescription:
@@ -82,6 +87,7 @@ export const projects: Project[] = [
   {
     id: "kids",
     number: "05",
+    order: 5,
     name: "Wonderbloom — Plateforme éducative",
     tagline: "Landing Page · Éducation",
     shortDescription:
@@ -97,6 +103,7 @@ export const projects: Project[] = [
   {
     id: "digital-store",
     number: "06",
+    order: 6,
     name: "DigitalStore — Boutique digitale",
     tagline: "E-commerce · Design",
     shortDescription:
@@ -112,6 +119,7 @@ export const projects: Project[] = [
   {
     id: "try-it",
     number: "07",
+    order: 7,
     name: "Wen. — Agence de branding",
     tagline: "Landing Page · Branding",
     shortDescription:
@@ -127,6 +135,7 @@ export const projects: Project[] = [
   {
     id: "php",
     number: "08",
+    order: 8,
     name: "Nova Lenha — E-commerce pellets",
     tagline: "Landing Page · E-commerce",
     shortDescription:
@@ -142,6 +151,7 @@ export const projects: Project[] = [
   {
     id: "my-landing",
     number: "09",
+    order: 9,
     name: "Wen. Studio — Design créatif",
     tagline: "Landing Page · Branding",
     shortDescription:
@@ -157,6 +167,7 @@ export const projects: Project[] = [
   {
     id: "php-intro",
     number: "10",
+    order: 10,
     name: "PHXCore — Studio PHP",
     tagline: "Landing Page · Dev",
     shortDescription:
@@ -172,6 +183,7 @@ export const projects: Project[] = [
   {
     id: "hilarus-blog",
     number: "11",
+    order: 11,
     name: "Hilarus Blog — Portfolio v1",
     tagline: "Portfolio · Personnel",
     shortDescription:
@@ -187,6 +199,7 @@ export const projects: Project[] = [
   {
     id: "tailla",
     number: "12",
+    order: 12,
     name: "TAILLA — Gestion pour tailleurs",
     tagline: "Web App · Gestion",
     shortDescription:
@@ -202,6 +215,7 @@ export const projects: Project[] = [
   {
     id: "wordsx",
     number: "13",
+    order: 13,
     name: "WordsX — Éditeur de texte",
     tagline: "Web App · Outil",
     shortDescription:
@@ -217,6 +231,7 @@ export const projects: Project[] = [
   {
     id: "oneclick",
     number: "14",
+    order: 14,
     name: "OneClick — Déploiement en un clic",
     tagline: "Web App · Outil Dev",
     shortDescription:

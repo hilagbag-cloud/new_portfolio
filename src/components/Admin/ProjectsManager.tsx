@@ -7,6 +7,7 @@ import {
   onSnapshot,
   setDoc,
   deleteDoc,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
@@ -34,6 +35,11 @@ import {
   AlertTriangle,
   DownloadCloud,
   FolderArchive,
+  ArrowUp,
+  ArrowDown,
+  Star,
+  MoveVertical,
+  ListOrdered,
 } from "lucide-react";
 import { ImageUploader } from "./ImageUploader";
 import { seedInitialCmsData } from "@/lib/cms-seed";
@@ -47,9 +53,19 @@ function mergeProjects(firestoreList: Project[]): Project[] {
     const existing = mergedMap.get(p.id);
     mergedMap.set(p.id, { ...existing, ...p });
   });
-  return Array.from(mergedMap.values()).sort((a, b) =>
-    (a.number || "").localeCompare(b.number || "")
-  );
+
+  return Array.from(mergedMap.values()).sort((a, b) => {
+    const orderA =
+      typeof a.order === "number"
+        ? a.order
+        : parseInt(a.number || "999", 10) || 999;
+    const orderB =
+      typeof b.order === "number"
+        ? b.order
+        : parseInt(b.number || "999", 10) || 999;
+    if (orderA !== orderB) return orderA - orderB;
+    return (a.number || "").localeCompare(b.number || "");
+  });
 }
 
 export function ProjectsManager() {
@@ -60,7 +76,9 @@ export function ProjectsManager() {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState(false);
+  const [reorderSuccess, setReorderSuccess] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"all" | "published" | "draft">("all");
+  const [isReorderMode, setIsReorderMode] = useState(false);
 
   useEffect(() => {
     const unsub = onSnapshot(
@@ -94,6 +112,112 @@ export function ProjectsManager() {
     }
   };
 
+  /**
+   * Save a reordered list to Firestore in a single batch
+   */
+  const saveReorderedList = async (newList: Project[]) => {
+    try {
+      setLoading(true);
+      const batch = writeBatch(db);
+
+      newList.forEach((proj, idx) => {
+        const orderNum = idx + 1;
+        const formattedNumber = String(orderNum).padStart(2, "0");
+        const docRef = doc(db, "projects", proj.id);
+        batch.set(
+          docRef,
+          {
+            ...proj,
+            order: orderNum,
+            number: formattedNumber,
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
+      });
+
+      await batch.commit();
+      setReorderSuccess(true);
+      setTimeout(() => setReorderSuccess(false), 3000);
+    } catch (err) {
+      console.error("Error saving reordered projects:", err);
+      alert("Erreur lors de l'enregistrement du nouvel ordre.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Move project one position UP
+   */
+  const handleMoveUp = async (index: number) => {
+    if (index <= 0) return;
+    const currentList = [...projectsList];
+    const itemToMove = currentList[index];
+    const prevItem = currentList[index - 1];
+
+    currentList[index - 1] = itemToMove;
+    currentList[index] = prevItem;
+
+    setProjectsList(currentList);
+    await saveReorderedList(currentList);
+  };
+
+  /**
+   * Move project one position DOWN
+   */
+  const handleMoveDown = async (index: number) => {
+    if (index >= projectsList.length - 1) return;
+    const currentList = [...projectsList];
+    const itemToMove = currentList[index];
+    const nextItem = currentList[index + 1];
+
+    currentList[index + 1] = itemToMove;
+    currentList[index] = nextItem;
+
+    setProjectsList(currentList);
+    await saveReorderedList(currentList);
+  };
+
+  /**
+   * Put project in TOP position (#01)
+   */
+  const handleMakeTop = async (index: number) => {
+    if (index === 0) return;
+    const currentList = [...projectsList];
+    const [itemToPromote] = currentList.splice(index, 1);
+    currentList.unshift(itemToPromote);
+
+    setProjectsList(currentList);
+    await saveReorderedList(currentList);
+  };
+
+  /**
+   * One-click highlight best projects (BacPilot #1, GB Labs #2, AdjaStream #3)
+   */
+  const handleSetFlagshipTop = async () => {
+    const list = [...projectsList];
+    const priorityIds = ["bacpilot", "gb-labs", "adjastream"];
+    
+    const priorityProjects: Project[] = [];
+    const otherProjects: Project[] = [];
+
+    priorityIds.forEach((id) => {
+      const found = list.find((p) => p.id === id);
+      if (found) priorityProjects.push(found);
+    });
+
+    list.forEach((p) => {
+      if (!priorityIds.includes(p.id)) {
+        otherProjects.push(p);
+      }
+    });
+
+    const combined = [...priorityProjects, ...otherProjects];
+    setProjectsList(combined);
+    await saveReorderedList(combined);
+  };
+
   const publishedCount = projectsList.filter((p) => p.published).length;
   const draftCount = projectsList.filter((p) => !p.published).length;
 
@@ -109,6 +233,7 @@ export function ProjectsManager() {
     let defaults: Partial<Project> = {
       id: `proj-${Date.now()}`,
       number: nextNum,
+      order: projectsList.length + 1,
       name: "",
       tagline: "",
       shortDescription: "",
@@ -188,6 +313,7 @@ export function ProjectsManager() {
         {
           ...editingProject,
           id: projId,
+          order: typeof editingProject.order === "number" ? editingProject.order : parseInt(editingProject.number || "99", 10) || 99,
           updatedAt: new Date().toISOString(),
         },
         { merge: true }
@@ -236,7 +362,7 @@ export function ProjectsManager() {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="font-display text-xl font-bold text-text">
-              Gestion des Projets & Réalisations ({projectsList.length})
+              Gestion & Ordre des Projets ({projectsList.length})
             </h2>
             <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-mono text-emerald-400">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -244,20 +370,34 @@ export function ProjectsManager() {
             </span>
           </div>
           <p className="text-xs text-muted mt-1">
-            Modifiez chaque projet (titres, descriptifs, médias importés et technologies) en direct.
+            Organisez l&apos;ordre d&apos;affichage, promouvez vos meilleurs projets (BacPilot, GB Labs) et éditez les contenus en direct.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Order mode toggle */}
+          <button
+            type="button"
+            onClick={() => setIsReorderMode((v) => !v)}
+            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-all ${
+              isReorderMode
+                ? "border-accent bg-accent/20 text-accent font-bold shadow-sm"
+                : "border-border bg-surface/70 text-text hover:border-accent hover:text-accent"
+            }`}
+          >
+            <ListOrdered size={14} className={isReorderMode ? "text-accent" : ""} />
+            <span>{isReorderMode ? "Mode Réordonner : Actif" : "Mode Réordonner"}</span>
+          </button>
+
           <button
             type="button"
             onClick={handleSyncDefaults}
             disabled={syncing}
             className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-surface/70 px-3 py-2 text-xs font-semibold text-text hover:border-accent hover:text-accent transition-colors disabled:opacity-50"
-            title="S'assure que tous les projets originaux (BacPilot, GB Labs, AdjaStream) sont enregistrés dans votre base Firestore"
+            title="S'assure que tous les projets originaux sont enregistrés dans votre base Firestore"
           >
             <RefreshCw size={13} className={syncing ? "animate-spin text-accent" : ""} />
-            <span>{syncSuccess ? "Synchronisé !" : "Synchroniser la base"}</span>
+            <span>{syncSuccess ? "Synchronisé !" : "Sync Base"}</span>
           </button>
 
           <button
@@ -271,11 +411,43 @@ export function ProjectsManager() {
         </div>
       </div>
 
+      {/* Flagship Quick Action Banner */}
+      <div className="rounded-2xl border border-accent/40 bg-gradient-to-r from-accent/10 via-surface/60 to-surface/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-bg font-bold shadow-md">
+            <Star size={20} />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-text flex items-center gap-2">
+              <span>Mise en avant des projets phares</span>
+              {reorderSuccess && (
+                <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                  <Check size={11} /> Ordre enregistré !
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-muted mt-0.5">
+              Placez instantanément <strong>BacPilot (#01)</strong> et <strong>GB Labs (#02)</strong> en tête d&apos;affiche du portfolio.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleSetFlagshipTop}
+          disabled={loading}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-accent bg-accent/20 px-4 py-2 text-xs font-bold text-accent hover:bg-accent hover:text-bg transition-all active:scale-95 shrink-0"
+        >
+          <Sparkles size={14} />
+          <span>Mettre BacPilot & GB Labs en tête (1-clic)</span>
+        </button>
+      </div>
+
       {/* Template Starters Bar */}
       <div className="rounded-2xl border border-border/80 bg-surface/50 p-3.5 flex flex-wrap items-center justify-between gap-3">
         <span className="eyebrow text-xs text-muted flex items-center gap-1.5 pl-1">
           <Sparkles size={13} className="text-accent" />
-          <span>Création rapide avec gabarit prédéfini :</span>
+          <span>Gabarits de création rapide :</span>
         </span>
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -346,134 +518,192 @@ export function ProjectsManager() {
         <div className="flex items-center gap-2 text-xs text-muted">
           <span className="inline-flex items-center gap-1.5 rounded-lg border border-accent/20 bg-accent/5 px-2.5 py-1 text-[11px] font-mono text-accent">
             <DownloadCloud size={13} />
-            <span>11 projets scrapés depuis hilarusblog.vercel.app</span>
+            <span>11 projets archivés & éditables</span>
           </span>
         </div>
       </div>
 
-      {/* Projects Grid */}
+      {/* Projects Grid / List with Reordering Controls */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredProjects.map((proj) => (
-          <div
-            key={proj.id}
-            className={`flex flex-col justify-between rounded-2xl border p-5 transition-all ${
-              proj.published
-                ? "border-border/80 bg-surface/60 shadow-sm hover:border-accent/40"
-                : "border-border/40 bg-surface/20 opacity-70"
-            }`}
-          >
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs font-semibold text-accent bg-accent/10 px-2 py-0.5 rounded border border-accent/20">
-                    #{proj.number || "00"}
-                  </span>
-                  <span className="font-mono text-[10px] text-muted uppercase tracking-wider">
-                    {proj.category || "software"}
-                  </span>
+        {filteredProjects.map((proj, index) => {
+          const globalIndex = projectsList.findIndex((p) => p.id === proj.id);
+          const isTopProject = globalIndex === 0;
+          const isSecondProject = globalIndex === 1;
+
+          return (
+            <div
+              key={proj.id}
+              className={`flex flex-col justify-between rounded-2xl border p-5 transition-all relative ${
+                proj.published
+                  ? "border-border/80 bg-surface/60 shadow-sm hover:border-accent/40"
+                  : "border-border/40 bg-surface/20 opacity-75"
+              } ${isTopProject ? "ring-1 ring-accent/60 bg-gradient-to-b from-accent/5 to-surface/60" : ""}`}
+            >
+              <div className="space-y-3">
+                {/* Header: Project Number, Order badge, and Move buttons */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`font-mono text-xs font-bold px-2 py-0.5 rounded border ${
+                        isTopProject
+                          ? "bg-accent text-bg border-accent"
+                          : isSecondProject
+                          ? "bg-accent/20 text-accent border-accent/40"
+                          : "bg-surface text-text border-border"
+                      }`}
+                    >
+                      #{proj.number || String(globalIndex + 1).padStart(2, "0")}
+                    </span>
+
+                    {isTopProject && (
+                      <span className="flex items-center gap-1 text-[10px] font-mono font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded border border-accent/30">
+                        <Star size={10} className="fill-accent" />
+                        <span>TÊTE #1</span>
+                      </span>
+                    )}
+
+                    <span className="font-mono text-[10px] text-muted uppercase tracking-wider">
+                      {proj.category || "software"}
+                    </span>
+                  </div>
+
+                  {/* Move Up / Move Down buttons */}
+                  <div className="flex items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/10">
+                    <button
+                      type="button"
+                      disabled={globalIndex <= 0 || loading}
+                      onClick={() => handleMoveUp(globalIndex)}
+                      className="p-1 rounded text-muted hover:text-accent hover:bg-white/10 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                      title="Monter (priorité plus haute)"
+                    >
+                      <ArrowUp size={13} strokeWidth={2.5} />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={globalIndex >= projectsList.length - 1 || loading}
+                      onClick={() => handleMoveDown(globalIndex)}
+                      className="p-1 rounded text-muted hover:text-accent hover:bg-white/10 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                      title="Descendre (priorité plus basse)"
+                    >
+                      <ArrowDown size={13} strokeWidth={2.5} />
+                    </button>
+                    {!isTopProject && (
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => handleMakeTop(globalIndex)}
+                        className="p-1 rounded text-accent hover:bg-accent/20 transition-colors"
+                        title="Placer en tête (#01)"
+                      >
+                        <Star size={13} />
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => togglePublish(proj)}
-                  className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-semibold transition-colors cursor-pointer ${
-                    proj.published
-                      ? "bg-accent/15 text-accent border border-accent/30"
-                      : "bg-muted/15 text-muted border border-border"
-                  }`}
-                >
-                  {proj.published ? "Publié" : "Brouillon"}
-                </button>
-              </div>
 
-              <div>
-                <h3 className="font-display text-lg font-bold text-text">{proj.name}</h3>
-                {proj.tagline && (
-                  <p className="text-[11px] text-accent font-mono mt-0.5">{proj.tagline}</p>
-                )}
-              </div>
-
-              <p className="text-xs text-muted leading-relaxed line-clamp-3">
-                {proj.shortDescription}
-              </p>
-
-              {/* Badges for Preview Mode & Category */}
-              <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono text-muted pt-1">
-                <span className="flex items-center gap-1 rounded bg-black/40 border border-white/10 px-2 py-0.5">
-                  {proj.previewMode === "image" ? (
-                    <>
-                      <ImageIcon size={11} className="text-accent" />
-                      <span>Aperçu Image Importée</span>
-                    </>
-                  ) : (
-                    <>
-                      <FileText size={11} className="text-accent" />
-                      <span>Description & Stack</span>
-                    </>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-display text-lg font-bold text-text">{proj.name}</h3>
+                    <button
+                      type="button"
+                      onClick={() => togglePublish(proj)}
+                      className={`rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold transition-colors cursor-pointer ${
+                        proj.published
+                          ? "bg-accent/15 text-accent border border-accent/30"
+                          : "bg-muted/15 text-muted border border-border"
+                      }`}
+                    >
+                      {proj.published ? "Publié" : "Brouillon"}
+                    </button>
+                  </div>
+                  {proj.tagline && (
+                    <p className="text-[11px] text-accent font-mono mt-0.5">{proj.tagline}</p>
                   )}
-                </span>
-              </div>
-
-              {/* Small preview thumbnail if available */}
-              {proj.previewImage && (
-                <div className="aspect-[16/9] w-full overflow-hidden rounded-lg border border-white/10 bg-black/50">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={proj.previewImage}
-                    alt={proj.name}
-                    className="h-full w-full object-cover"
-                  />
                 </div>
-              )}
 
-              <div className="flex flex-wrap gap-1 pt-1">
-                {proj.technologies?.map((tech) => (
-                  <span
-                    key={tech}
-                    className="rounded-md border border-border bg-surface px-2 py-0.5 font-mono text-[10px] text-muted"
-                  >
-                    {tech}
+                <p className="text-xs text-muted leading-relaxed line-clamp-3">
+                  {proj.shortDescription}
+                </p>
+
+                {/* Badges for Preview Mode & Category */}
+                <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono text-muted pt-1">
+                  <span className="flex items-center gap-1 rounded bg-black/40 border border-white/10 px-2 py-0.5">
+                    {proj.previewMode === "image" ? (
+                      <>
+                        <ImageIcon size={11} className="text-accent" />
+                        <span>Aperçu Image</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileText size={11} className="text-accent" />
+                        <span>Description & Stack</span>
+                      </>
+                    )}
                   </span>
-                ))}
+                </div>
+
+                {/* Small preview thumbnail if available */}
+                {proj.previewImage && (
+                  <div className="aspect-[16/9] w-full overflow-hidden rounded-lg border border-white/10 bg-black/50">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={proj.previewImage}
+                      alt={proj.name}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-1 pt-1">
+                  {proj.technologies?.map((tech) => (
+                    <span
+                      key={tech}
+                      className="rounded-md border border-border bg-surface px-2 py-0.5 font-mono text-[10px] text-muted"
+                    >
+                      {tech}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-border/60 pt-4 mt-4">
+                {proj.externalUrl ? (
+                  <a
+                    href={proj.externalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-accent hover:underline font-mono"
+                  >
+                    <span>Lien externe</span>
+                    <ExternalLink size={12} />
+                  </a>
+                ) : (
+                  <span className="text-[11px] text-muted font-mono">Dossier interne</span>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEdit(proj)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-text transition-colors hover:border-accent hover:text-accent"
+                    title="Modifier le projet"
+                  >
+                    <Edit2 size={13} />
+                    <span>Éditer</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteConfirmId(proj.id)}
+                    className="rounded-lg border border-border p-2 text-muted transition-colors hover:border-red-500 hover:text-red-400"
+                    title="Supprimer"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
             </div>
-
-            <div className="flex items-center justify-between border-t border-border/60 pt-4 mt-4">
-              {proj.externalUrl ? (
-                <a
-                  href={proj.externalUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
-                >
-                  <span>Lien externe</span>
-                  <ExternalLink size={12} />
-                </a>
-              ) : (
-                <span className="text-[11px] text-muted font-mono">Dossier interne</span>
-              )}
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleOpenEdit(proj)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-text transition-colors hover:border-accent hover:text-accent"
-                  title="Modifier le projet"
-                >
-                  <Edit2 size={13} />
-                  <span>Éditer</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDeleteConfirmId(proj.id)}
-                  className="rounded-lg border border-border p-2 text-muted transition-colors hover:border-red-500 hover:text-red-400"
-                  title="Supprimer"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Confirmation Modal for Deletion to prevent accidental wipes */}
@@ -529,7 +759,7 @@ export function ProjectsManager() {
                     : "Nouveau Projet"}
                 </h3>
                 <p className="text-xs text-muted">
-                  Personnalisez le contenu, les médias et les animations.
+                  Personnalisez le contenu, les médias, l&apos;ordre et les informations du projet.
                 </p>
               </div>
               <button
@@ -587,7 +817,7 @@ export function ProjectsManager() {
             </div>
 
             <form onSubmit={handleSave} className="space-y-5">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="eyebrow mb-1 block text-xs">Numéro (#01, #02...)</label>
                   <input
@@ -597,6 +827,22 @@ export function ProjectsManager() {
                       setEditingProject({ ...editingProject, number: e.target.value })
                     }
                     placeholder="01"
+                    className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-sm text-text focus-ring font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="eyebrow mb-1 block text-xs">Ordre / Rang (1, 2, 3...)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={editingProject.order ?? ""}
+                    onChange={(e) =>
+                      setEditingProject({
+                        ...editingProject,
+                        order: parseInt(e.target.value, 10) || 1,
+                      })
+                    }
+                    placeholder="1"
                     className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-sm text-text focus-ring font-mono"
                   />
                 </div>
@@ -775,3 +1021,4 @@ export function ProjectsManager() {
     </div>
   );
 }
+

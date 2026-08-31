@@ -60,40 +60,28 @@ export function Navigation() {
             ))}
           </ul>
 
-          <div className="flex items-center gap-2.5">
-            {/* Desktop Contact CTA */}
-            <a
-              href={site.nav.contact.href}
-              className="hidden md:inline-flex btn-skew focus-ring py-2 px-4 text-xs"
-            >
-              <span>{site.nav.contact.label.toUpperCase()}</span>
-              <ArrowUpRight size={14} strokeWidth={2} />
-            </a>
+          <a
+            href={site.nav.contact.href}
+            className="hidden md:inline-flex btn-skew focus-ring py-2 px-4 text-xs"
+          >
+            <span>{site.nav.contact.label.toUpperCase()}</span>
+            <ArrowUpRight size={14} strokeWidth={2} />
+          </a>
 
-            {/* Mobile Contact Pill Button */}
-            <a
-              href={site.nav.contact.href}
-              className="md:hidden inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-surface/90 px-3 py-1.5 text-xs font-mono font-bold uppercase tracking-wider text-text hover:border-accent hover:text-accent transition-colors active:scale-95 shadow-xs"
-            >
-              <span>LET&apos;S BUILD</span>
-            </a>
-
-            {/* Mobile Menu Icon Button (Icon only) */}
-            <button
-              type="button"
-              aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
-              aria-expanded={menuOpen}
-              onClick={() => setMenuOpen((v) => !v)}
-              className="md:hidden inline-flex h-10 w-10 min-h-[40px] min-w-[40px] items-center justify-center rounded-xl border border-border bg-surface/90 text-text hover:border-accent hover:text-accent transition-all focus-ring active:scale-95 shadow-xs"
-              id="mobile-nav-toggle-btn"
-            >
-              {menuOpen ? (
-                <X size={19} strokeWidth={2.2} />
-              ) : (
-                <Menu size={19} strokeWidth={2.2} />
-              )}
-            </button>
-          </div>
+          <button
+            type="button"
+            aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((v) => !v)}
+            className="md:hidden inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-border bg-surface/80 text-text hover:border-accent hover:text-accent transition-all focus-ring active:scale-95"
+            id="mobile-nav-toggle-btn"
+          >
+            {menuOpen ? (
+              <X size={20} strokeWidth={2.2} />
+            ) : (
+              <Menu size={20} strokeWidth={2.2} />
+            )}
+          </button>
         </nav>
       </header>
 

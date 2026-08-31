@@ -28,9 +28,18 @@ function mergeProjects(firestoreList: Project[]): Project[] {
     mergedMap.set(p.id, { ...existing, ...p });
   });
 
-  return Array.from(mergedMap.values()).sort((a, b) =>
-    (a.number || "").localeCompare(b.number || "")
-  );
+  return Array.from(mergedMap.values()).sort((a, b) => {
+    const orderA =
+      typeof a.order === "number"
+        ? a.order
+        : parseInt(a.number || "999", 10) || 999;
+    const orderB =
+      typeof b.order === "number"
+        ? b.order
+        : parseInt(b.number || "999", 10) || 999;
+    if (orderA !== orderB) return orderA - orderB;
+    return (a.number || "").localeCompare(b.number || "");
+  });
 }
 
 /**
