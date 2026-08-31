@@ -109,7 +109,7 @@ export const defaultSiteMetadata: SiteMetadataConfig = {
   ogDescription:
     "Profil officiel de Hilarus Gbagoule. Design d'interfaces haute fidélité, ingénierie logicielle robuste et intégrations d'intelligence artificielle multimodale.",
   ogImage: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&auto=format&fit=crop",
-  profileImage: "/hilarus.png",
+  profileImage: "",
   heroImageWidth: 540,
   heroImageScale: 1.05,
   heroImageFit: "contain",

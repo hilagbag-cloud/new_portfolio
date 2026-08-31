@@ -227,7 +227,14 @@ export function SiteSettingsManager() {
           if (data.siteUrl) setSiteUrl(data.siteUrl);
           if (data.author) setAuthor(data.author);
           if (data.positioning) setPositioning(data.positioning);
-          if (data.profileImage) setProfileImage(data.profileImage);
+          if (data.profileImage && data.profileImage !== "/hilarus.png") {
+            setProfileImage(data.profileImage);
+          } else {
+            setProfileImage("");
+            if (typeof window !== "undefined") {
+              localStorage.removeItem("cms_profile_image");
+            }
+          }
           if (data.heroImageWidth !== undefined) setHeroImageWidth(data.heroImageWidth);
           if (data.heroImageScale !== undefined) setHeroImageScale(data.heroImageScale);
           if (data.heroImageFit) setHeroImageFit(data.heroImageFit);

@@ -11,12 +11,13 @@ export function Hero() {
   const reducedMotion = useReducedMotion();
   const cmsConfig = useCmsSiteConfig();
 
-  // Photo URL resolution (Direct user photo priority without default image flash)
-  const profilePhotoUrlLazy =
+  // Photo URL resolution (Only user-uploaded photo, never artificial default)
+  const rawPhoto =
     (cmsConfig as { profileImage?: string })?.profileImage ||
     (typeof window !== "undefined" ? localStorage.getItem("cms_profile_image") : null) ||
     site.profileImage ||
-    "/hilarus.png";
+    "";
+  const profilePhotoUrlLazy = rawPhoto === "/hilarus.png" ? "" : rawPhoto;
 
   const heroWidth =
     (cmsConfig as { heroImageWidth?: number })?.heroImageWidth || 560;
@@ -151,30 +152,32 @@ export function Hero() {
             </p>
           </motion.div>
 
-          {/* 3. PHOTO (Proportionate, expanded width, no cut-off) */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: heroScale }}
-            transition={{ duration: 0.5, delay: 0.15 }}
-            className="relative my-1 w-[clamp(240px,82vw,480px)] max-w-full pointer-events-none select-none flex flex-col items-center justify-end"
-          >
-            {/* Ambient Rim Light */}
-            <div className="absolute inset-0 bg-gradient-to-t from-accent/20 via-accent/15 to-transparent blur-2xl rounded-full opacity-60 pointer-events-none" />
+          {/* 3. PHOTO (Only rendered if custom photo is configured) */}
+          {profilePhotoUrlLazy ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: heroScale }}
+              transition={{ duration: 0.5, delay: 0.15 }}
+              className="relative my-1 w-[clamp(240px,82vw,480px)] max-w-full pointer-events-none select-none flex flex-col items-center justify-end"
+            >
+              {/* Ambient Rim Light */}
+              <div className="absolute inset-0 bg-gradient-to-t from-accent/20 via-accent/15 to-transparent blur-2xl rounded-full opacity-60 pointer-events-none" />
 
-            <div className="relative w-full max-h-[480px] flex items-end justify-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={profilePhotoUrlLazy}
-                alt={site.fullName || "Hilarus Gbagoule — Creative Technologist"}
-                loading="eager"
-                fetchPriority="high"
-                decoding="async"
-                className={`w-full h-auto max-h-[460px] ${
-                  heroFit === "cover" ? "object-cover" : "object-contain"
-                } object-bottom portrait-3d-mask portrait-glow-filter`}
-              />
-            </div>
-          </motion.div>
+              <div className="relative w-full max-h-[480px] flex items-end justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={profilePhotoUrlLazy}
+                  alt={site.fullName || "Hilarus Gbagoule — Creative Technologist"}
+                  loading="eager"
+                  fetchPriority="high"
+                  decoding="async"
+                  className={`w-full h-auto max-h-[460px] ${
+                    heroFit === "cover" ? "object-cover" : "object-contain"
+                  } object-bottom portrait-3d-mask portrait-glow-filter`}
+                />
+              </div>
+            </motion.div>
+          ) : null}
 
           {/* 4. SOCIAL LINKS */}
           <motion.nav
@@ -234,44 +237,48 @@ export function Hero() {
             HILARUS
           </motion.h1>
 
-          {/* 3D FLOATING CUTOUT PORTRAIT (NO BOX / NO CARD) */}
-          <motion.div
-            style={{
-              y: photoParallax,
-              rotateX: tilt.rotateX,
-              rotateY: tilt.rotateY,
-              width: `min(100%, ${heroWidth}px)`,
-              maxWidth: "100%",
-            }}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: heroScale }}
-            transition={{ duration: 0.9, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="relative -my-10 md:-my-14 lg:-my-18 z-20 mx-auto pointer-events-none select-none flex flex-col items-center justify-end"
-          >
-            {/* Ambient Rim Light behind portrait */}
-            <div className="absolute inset-0 -inset-x-8 bg-gradient-to-t from-accent/20 via-accent/30 to-transparent blur-3xl rounded-full opacity-70 pointer-events-none" />
+          {/* 3D FLOATING CUTOUT PORTRAIT (Only rendered if custom photo is configured) */}
+          {profilePhotoUrlLazy ? (
+            <motion.div
+              style={{
+                y: photoParallax,
+                rotateX: tilt.rotateX,
+                rotateY: tilt.rotateY,
+                width: `min(100%, ${heroWidth}px)`,
+                maxWidth: "100%",
+              }}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: heroScale }}
+              transition={{ duration: 0.9, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="relative -my-10 md:-my-14 lg:-my-18 z-20 mx-auto pointer-events-none select-none flex flex-col items-center justify-end"
+            >
+              {/* Ambient Rim Light behind portrait */}
+              <div className="absolute inset-0 -inset-x-8 bg-gradient-to-t from-accent/20 via-accent/30 to-transparent blur-3xl rounded-full opacity-70 pointer-events-none" />
 
-            <div className="relative w-full max-h-[680px] flex items-end justify-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={profilePhotoUrlLazy}
-                alt={site.fullName || "Hilarus Gbagoule — Creative Technologist"}
-                loading="eager"
-                fetchPriority="high"
-                decoding="async"
-                className={`w-full h-auto max-h-[660px] ${
-                  heroFit === "cover" ? "object-cover" : "object-contain"
-                } object-bottom portrait-3d-mask portrait-glow-filter transition-transform duration-500`}
-              />
-            </div>
-          </motion.div>
+              <div className="relative w-full max-h-[680px] flex items-end justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={profilePhotoUrlLazy}
+                  alt={site.fullName || "Hilarus Gbagoule — Creative Technologist"}
+                  loading="eager"
+                  fetchPriority="high"
+                  decoding="async"
+                  className={`w-full h-auto max-h-[660px] ${
+                    heroFit === "cover" ? "object-cover" : "object-contain"
+                  } object-bottom portrait-3d-mask portrait-glow-filter transition-transform duration-500`}
+                />
+              </div>
+            </motion.div>
+          ) : null}
 
           {/* Lower Giant Name: GBAGOULE */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="font-display text-[clamp(4.5rem,10.5vw,9.2rem)] leading-[0.9] tracking-tight uppercase text-accent text-center z-10 w-full max-w-full px-2 drop-shadow-sm"
+            className={`font-display text-[clamp(4.5rem,10.5vw,9.2rem)] leading-[0.9] tracking-tight uppercase text-accent text-center z-10 w-full max-w-full px-2 drop-shadow-sm ${
+              !profilePhotoUrlLazy ? "mt-1 sm:mt-2" : ""
+            }`}
           >
             GBAGOULE
           </motion.h1>

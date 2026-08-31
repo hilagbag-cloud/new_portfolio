@@ -1,7 +1,7 @@
 export const site = {
   name: "Hilarus",
   fullName: "Hilarus Gbagoule",
-  profileImage: "/hilarus.png", // Local asset in /public/hilarus.png or updated via CMS
+  profileImage: "", // Updated via CMS or user upload
   contactEmail: "hilaruskazak@gmail.com",
   nav: {
     brand: "HILARUS.",

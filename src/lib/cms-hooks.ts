@@ -133,9 +133,16 @@ export function useCmsSiteConfig(): CmsMergedSiteConfig {
     if (typeof window !== "undefined") {
       try {
         const cached = localStorage.getItem("cms_site_config");
-        const cachedProfileImage = localStorage.getItem("cms_profile_image");
+        let cachedProfileImage = localStorage.getItem("cms_profile_image");
+        if (cachedProfileImage === "/hilarus.png") {
+          localStorage.removeItem("cms_profile_image");
+          cachedProfileImage = null;
+        }
         if (cached) {
           const parsed = JSON.parse(cached);
+          if (parsed.profileImage === "/hilarus.png") {
+            parsed.profileImage = "";
+          }
           return {
             ...defaultSite,
             ...defaultSiteMetadata,
@@ -156,6 +163,7 @@ export function useCmsSiteConfig(): CmsMergedSiteConfig {
     return {
       ...defaultSite,
       ...defaultSiteMetadata,
+      profileImage: "",
     } as CmsMergedSiteConfig;
   });
 
@@ -163,10 +171,17 @@ export function useCmsSiteConfig(): CmsMergedSiteConfig {
     // Check localStorage on client mount if initial SSR was empty
     if (typeof window !== "undefined") {
       try {
-        const cachedProfile = localStorage.getItem("cms_profile_image");
+        let cachedProfile = localStorage.getItem("cms_profile_image");
+        if (cachedProfile === "/hilarus.png") {
+          localStorage.removeItem("cms_profile_image");
+          cachedProfile = null;
+        }
         const cachedConfig = localStorage.getItem("cms_site_config");
         if (cachedProfile || cachedConfig) {
           const parsed = cachedConfig ? JSON.parse(cachedConfig) : {};
+          if (parsed.profileImage === "/hilarus.png") {
+            parsed.profileImage = "";
+          }
           setSiteConfig((prev) => ({
             ...prev,
             ...parsed,
@@ -183,11 +198,16 @@ export function useCmsSiteConfig(): CmsMergedSiteConfig {
       (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data() as SiteMetadataConfig;
+          if (data.profileImage === "/hilarus.png") {
+            data.profileImage = "";
+          }
           if (typeof window !== "undefined") {
             try {
               localStorage.setItem("cms_site_config", JSON.stringify(data));
-              if (data.profileImage) {
+              if (data.profileImage && data.profileImage !== "/hilarus.png") {
                 localStorage.setItem("cms_profile_image", data.profileImage);
+              } else {
+                localStorage.removeItem("cms_profile_image");
               }
             } catch {
               // ignore storage quotas
