@@ -1,5 +1,6 @@
 import { MetadataRoute } from "next";
 import { milestones as defaultMilestones } from "@/data/milestones";
+import { projects as defaultProjects } from "@/data/projects";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -11,14 +12,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .filter((m) => m.published !== false)
     .map((m) => m.id);
 
+  let publishedProjectIds: string[] = defaultProjects
+    .filter((p) => p.published !== false)
+    .map((p) => p.id);
+
   try {
-    const q = query(collection(db, "milestones"), where("published", "==", true));
-    const snap = await getDocs(q);
-    if (!snap.empty) {
-      publishedMilestoneIds = snap.docs.map((d) => d.id);
+    const qMilestones = query(collection(db, "milestones"), where("published", "==", true));
+    const snapMilestones = await getDocs(qMilestones);
+    if (!snapMilestones.empty) {
+      publishedMilestoneIds = snapMilestones.docs.map((d) => d.id);
     }
   } catch {
     // Fallback to static milestones if DB is unreachable during build
+  }
+
+  try {
+    const qProjects = query(collection(db, "projects"), where("published", "==", true));
+    const snapProjects = await getDocs(qProjects);
+    if (!snapProjects.empty) {
+      publishedProjectIds = snapProjects.docs.map((d) => d.id);
+    }
+  } catch {
+    // Fallback to static projects
   }
 
   const sitemapEntries: MetadataRoute.Sitemap = [
@@ -28,6 +43,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 1.0,
     },
+    ...publishedProjectIds.map((id) => ({
+      url: `${cleanBaseUrl}/projects/${id}`,
+      lastModified: new Date(),
+      changeFrequency: "weekly" as const,
+      priority: 0.9,
+    })),
     ...publishedMilestoneIds.map((id) => ({
       url: `${cleanBaseUrl}/journey/${id}`,
       lastModified: new Date(),

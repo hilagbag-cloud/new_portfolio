@@ -37,6 +37,7 @@ export interface SiteMetadataConfig {
   ogDescription?: string;
   ogImage?: string;
   profileImage?: string;
+  siteLogo?: string;
   heroImageWidth?: number;
   heroImageScale?: number;
   heroImageFit?: "contain" | "cover" | "natural";
@@ -110,6 +111,7 @@ export const defaultSiteMetadata: SiteMetadataConfig = {
     "Profil officiel de Hilarus Gbagoule. Design d'interfaces haute fidélité, ingénierie logicielle robuste et intégrations d'intelligence artificielle multimodale.",
   ogImage: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&auto=format&fit=crop",
   profileImage: "",
+  siteLogo: "",
   heroImageWidth: 540,
   heroImageScale: 1.05,
   heroImageFit: "contain",
@@ -238,7 +240,7 @@ export function buildJsonLdSchema(config: SiteMetadataConfig) {
         additionalName,
         alternateName: alternateNames,
         url: siteUrl,
-        image: config.profileImage || config.ogImage || `${siteUrl}/me.jpg`,
+        image: config.siteLogo || config.profileImage || config.ogImage || `${siteUrl}/icon`,
         description: bio,
         jobTitle,
         nationality: {
@@ -262,12 +264,14 @@ export function buildJsonLdSchema(config: SiteMetadataConfig) {
           {
             "@type": "Organization",
             name: config.companyOrOrg || "GB Labs",
+            logo: config.siteLogo || `${siteUrl}/icon`,
             description: config.orgDescription || "Laboratoire d'ingénierie logicielle et intelligence artificielle.",
           },
           {
             "@type": "Organization",
             name: "BacPilot",
             url: "https://bacpilot.site",
+            logo: `${siteUrl}/icon`,
             description: "Plateforme d'orientation académique intelligente.",
           },
         ],
@@ -331,6 +335,9 @@ export function buildNextMetadata(config: SiteMetadataConfig): Metadata {
     verification.other = { "msvalidate.01": config.bingSiteVerification };
   }
 
+  const siteLogoIcon = config.siteLogo || "/icon";
+  const appleIcon = config.siteLogo || "/apple-icon";
+
   return {
     title: {
       default: title,
@@ -349,6 +356,17 @@ export function buildNextMetadata(config: SiteMetadataConfig): Metadata {
     alternates: {
       canonical: config.canonicalUrl || cleanUrl,
     },
+    icons: {
+      icon: [
+        { url: siteLogoIcon, type: "image/png", sizes: "48x48" },
+        { url: siteLogoIcon, type: "image/png", sizes: "192x192" },
+      ],
+      shortcut: [siteLogoIcon],
+      apple: [
+        { url: appleIcon, sizes: "180x180", type: "image/png" },
+      ],
+    },
+    manifest: "/manifest.webmanifest",
     verification,
     openGraph: {
       title: ogTitle,

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   ExternalLink,
   BookOpen,
@@ -12,6 +13,7 @@ import {
   ArrowUpRight,
   X,
   Layers,
+  FileText,
 } from "lucide-react";
 import type { Project } from "@/data/projects";
 
@@ -151,11 +153,14 @@ export function ProjectCard({
             )}
 
             {/* ACTION DIRECT CTA */}
-            <div className="pt-3 border-t border-border flex items-center justify-between">
-              <span className="font-mono text-[11px] text-muted flex items-center gap-1">
-                <Layers size={12} className="text-accent" />
-                <span>{project.caseStudy ? "Étude de cas" : "Projet"}</span>
-              </span>
+            <div className="pt-3 border-t border-border flex items-center justify-between gap-2">
+              <Link
+                href={`/projects/${project.id}`}
+                className="font-mono text-[11px] text-muted hover:text-accent flex items-center gap-1.5 transition-colors"
+              >
+                <FileText size={12} className="text-accent" />
+                <span>Fiche projet</span>
+              </Link>
 
               {project.externalUrl ? (
                 <a
@@ -164,12 +169,12 @@ export function ProjectCard({
                   rel="noreferrer"
                   className="btn-skew !text-[11px] !py-1.5 !px-3.5 focus-ring"
                 >
-                  <span>Visiter le site</span>
+                  <span>Visiter</span>
                   <ExternalLink size={12} />
                 </a>
               ) : (
                 <span className="font-mono text-[10px] text-muted px-2 py-1 rounded bg-bg border border-border">
-                  Projet interne
+                  Interne
                 </span>
               )}
             </div>
@@ -297,11 +302,16 @@ export function ProjectCard({
             </div>
 
             {/* Action Link at Bottom of Interior */}
-            <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
-              <span className="font-mono text-[10px] text-accent flex items-center gap-1.5 font-semibold">
-                <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
-                <span>{project.caseStudy ? "Étude Complète" : "Production"}</span>
-              </span>
+            <div className="mt-4 pt-3 border-t border-border flex items-center justify-between gap-2">
+              <Link
+                href={`/projects/${project.id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="font-mono text-[10px] text-muted hover:text-accent flex items-center gap-1.5 transition-colors"
+                title={`Ouvrir la fiche complète de ${project.name}`}
+              >
+                <FileText size={11} className="text-accent" />
+                <span>Fiche complète</span>
+              </Link>
 
               {project.externalUrl ? (
                 <a
@@ -311,7 +321,7 @@ export function ProjectCard({
                   onClick={(e) => e.stopPropagation()}
                   className="btn-skew !text-[11px] !py-1.5 !px-3"
                 >
-                  <span>Accéder au site web</span>
+                  <span>Accéder au site</span>
                   <ExternalLink size={11} />
                 </a>
               ) : (

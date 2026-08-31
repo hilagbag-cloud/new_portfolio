@@ -129,46 +129,14 @@ export function useCmsMilestones() {
 }
 
 export function useCmsSiteConfig(): CmsMergedSiteConfig {
-  const [siteConfig, setSiteConfig] = useState<CmsMergedSiteConfig>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const cached = localStorage.getItem("cms_site_config");
-        let cachedProfileImage = localStorage.getItem("cms_profile_image");
-        if (cachedProfileImage === "/hilarus.png") {
-          localStorage.removeItem("cms_profile_image");
-          cachedProfileImage = null;
-        }
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed.profileImage === "/hilarus.png") {
-            parsed.profileImage = "";
-          }
-          return {
-            ...defaultSite,
-            ...defaultSiteMetadata,
-            ...parsed,
-            ...(cachedProfileImage ? { profileImage: cachedProfileImage } : {}),
-          } as CmsMergedSiteConfig;
-        } else if (cachedProfileImage) {
-          return {
-            ...defaultSite,
-            ...defaultSiteMetadata,
-            profileImage: cachedProfileImage,
-          } as CmsMergedSiteConfig;
-        }
-      } catch {
-        // ignore JSON parse or storage errors
-      }
-    }
-    return {
-      ...defaultSite,
-      ...defaultSiteMetadata,
-      profileImage: "",
-    } as CmsMergedSiteConfig;
-  });
+  const [siteConfig, setSiteConfig] = useState<CmsMergedSiteConfig>(() => ({
+    ...defaultSite,
+    ...defaultSiteMetadata,
+    profileImage: "",
+  }));
 
   useEffect(() => {
-    // Check localStorage on client mount if initial SSR was empty
+    // Check localStorage on client mount after hydration
     if (typeof window !== "undefined") {
       try {
         let cachedProfile = localStorage.getItem("cms_profile_image");

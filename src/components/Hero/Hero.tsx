@@ -14,7 +14,6 @@ export function Hero() {
   // Photo URL resolution (Only user-uploaded photo, never artificial default)
   const rawPhoto =
     (cmsConfig as { profileImage?: string })?.profileImage ||
-    (typeof window !== "undefined" ? localStorage.getItem("cms_profile_image") : null) ||
     site.profileImage ||
     "";
   const profilePhotoUrlLazy = rawPhoto === "/hilarus.png" ? "" : rawPhoto;

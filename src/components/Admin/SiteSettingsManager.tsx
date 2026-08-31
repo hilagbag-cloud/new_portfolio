@@ -57,6 +57,7 @@ export function SiteSettingsManager() {
     defaultSiteMetadata.ogDescription || ""
   );
   const [ogImage, setOgImage] = useState(defaultSiteMetadata.ogImage || "");
+  const [siteLogo, setSiteLogo] = useState(defaultSiteMetadata.siteLogo || "");
   const [twitterCard, setTwitterCard] = useState<"summary" | "summary_large_image">(
     "summary_large_image"
   );
@@ -223,6 +224,7 @@ export function SiteSettingsManager() {
           if (data.ogTitle) setOgTitle(data.ogTitle);
           if (data.ogDescription) setOgDescription(data.ogDescription);
           if (data.ogImage) setOgImage(data.ogImage);
+          if (data.siteLogo) setSiteLogo(data.siteLogo);
           if (data.twitterCard) setTwitterCard(data.twitterCard);
           if (data.siteUrl) setSiteUrl(data.siteUrl);
           if (data.author) setAuthor(data.author);
@@ -351,6 +353,7 @@ export function SiteSettingsManager() {
         ogTitle: ogTitle || metaTitle,
         ogDescription: ogDescription || metaDescription,
         ogImage,
+        siteLogo,
         profileImage,
         heroImageWidth: Number(heroImageWidth) || 560,
         heroImageScale: Number(heroImageScale) || 1.0,
@@ -507,6 +510,7 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
       .filter(Boolean),
     bioLong,
     profileImage,
+    siteLogo,
     ogImage,
     socials: {
       linkedin: linkedinUrl,
@@ -828,6 +832,16 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
 
                   <div className="pt-2">
                     <ImageUploader
+                      label="Logo Officiel du Site & Icône Google Search (Favicon)"
+                      sublabel="Logo carré (recommandé min. 48×48 ou 512×512 px) utilisé par Google Search, la balise Schema.org et les favoris."
+                      value={siteLogo}
+                      onChange={(val) => setSiteLogo(val)}
+                      aspectRatio="1/1"
+                    />
+                  </div>
+
+                  <div className="pt-2">
+                    <ImageUploader
                       label="Bannière de Partage Open Graph (OG Image)"
                       sublabel="Glissez-déposez ou importez votre visuel de partage (format 1200×630 recommandé)."
                       value={ogImage}
@@ -851,10 +865,25 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
                   <span className="font-mono text-[10px] text-accent">En direct</span>
                 </div>
 
-                <div className="rounded-xl border border-border/80 bg-[#161a17] p-4 font-sans text-xs space-y-1 shadow-inner">
-                  <div className="flex items-center gap-1.5 text-[11px] text-muted">
-                    <span className="truncate">{siteUrl || "https://hilarus.dev"}</span>
-                    <span>›</span>
+                <div className="rounded-xl border border-border/80 bg-[#161a17] p-4 font-sans text-xs space-y-1.5 shadow-inner">
+                  <div className="flex items-center gap-2 text-[11px] text-muted">
+                    {/* Google Search Favicon display */}
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#202722] border border-white/10 overflow-hidden shrink-0">
+                      {siteLogo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={siteLogo}
+                          alt="Logo Google"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="font-mono text-[10px] font-bold text-accent">H.</span>
+                      )}
+                    </div>
+                    <div className="flex flex-col overflow-hidden">
+                      <span className="text-[12px] text-white font-medium truncate">{author || "Hilarus Gbagoule"}</span>
+                      <span className="text-[10px] text-[#bdc1c6] truncate">{siteUrl || "https://hilarus.dev"}</span>
+                    </div>
                   </div>
                   <h4 className="text-sm font-medium text-[#8ab4f8] line-clamp-1 hover:underline cursor-pointer">
                     {metaTitle || "Hilarus Gbagoule — Digital Builder"}
