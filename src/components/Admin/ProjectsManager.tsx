@@ -43,6 +43,13 @@ import {
 } from "lucide-react";
 import { ImageUploader } from "./ImageUploader";
 import { seedInitialCmsData } from "@/lib/cms-seed";
+import { ConfirmWriteModal, type PendingFirestoreWrite } from "./ConfirmWriteModal";
+import {
+  sanitizeForFirestore,
+  saveLocalDraft,
+  loadLocalDraft,
+  getFirestoreErrorMessage,
+} from "@/lib/firestore-utils";
 
 function mergeProjects(firestoreList: Project[]): Project[] {
   const mergedMap = new Map<string, Project>();
@@ -98,6 +105,10 @@ export function ProjectsManager({
   const [statusFilter, setStatusFilter] = useState<"all" | "published" | "draft">("all");
   const [isReorderMode, setIsReorderMode] = useState(false);
 
+  // Manual Confirmation State
+  const [pendingWrite, setPendingWrite] = useState<PendingFirestoreWrite | null>(null);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+
   useEffect(() => {
     const unsub = onSnapshot(
       collection(db, "projects"),
@@ -119,84 +130,131 @@ export function ProjectsManager({
   /**
    * Save all current projects (drafts & published) permanently to Firestore in one batch
    */
-  const handleSaveAllProjectsToFirestore = async () => {
-    try {
-      setLoading(true);
-      const batch = writeBatch(db);
-      projectsList.forEach((proj, idx) => {
-        const orderNum = typeof proj.order === "number" ? proj.order : idx + 1;
-        const formattedNumber = String(orderNum).padStart(2, "0");
-        const docRef = doc(db, "projects", proj.id);
-        batch.set(
-          docRef,
-          {
-            ...proj,
-            order: orderNum,
-            number: formattedNumber,
-            updatedAt: new Date().toISOString(),
-          },
-          { merge: true }
-        );
-      });
+  const handleSaveAllProjectsToFirestore = () => {
+    // Backup all projects to local storage
+    saveLocalDraft("projects_list", projectsList);
 
-      await batch.commit();
-      setSaveAllSuccess(true);
-      setTimeout(() => setSaveAllSuccess(false), 4000);
-    } catch (err) {
-      console.error("Error saving all projects to Firestore:", err);
-      alert("Erreur lors de la sauvegarde globale des projets sur Firestore.");
-    } finally {
-      setLoading(false);
-    }
+    const cleanBatchPayload = projectsList.map((proj, idx) => {
+      const orderNum = typeof proj.order === "number" ? proj.order : idx + 1;
+      const formattedNumber = String(orderNum).padStart(2, "0");
+      return sanitizeForFirestore(
+        {
+          ...proj,
+          order: orderNum,
+          number: formattedNumber,
+          updatedAt: new Date().toISOString(),
+        },
+        { removeEmptyStrings: true, removeEmptyObjects: true }
+      );
+    });
+
+    setPendingWrite({
+      title: `Sauvegarde groupée (${projectsList.length} projets)`,
+      description: "Validation requise pour écrire l'ensemble des projets dans la collection 'projects' de Firestore. Tous les champs vides ont été supprimés.",
+      collection: "projects",
+      payload: cleanBatchPayload,
+      actionType: "batchWrite",
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          const batch = writeBatch(db);
+          cleanBatchPayload.forEach((cleanProj) => {
+            if (cleanProj && (cleanProj as Project).id) {
+              const docRef = doc(db, "projects", (cleanProj as Project).id);
+              batch.set(docRef, cleanProj as Record<string, unknown>, { merge: true });
+            }
+          });
+
+          await batch.commit();
+          setSaveAllSuccess(true);
+          setTimeout(() => setSaveAllSuccess(false), 4000);
+        } catch (err: unknown) {
+          console.error("Error saving all projects to Firestore:", err);
+          const msg = getFirestoreErrorMessage(err);
+          alert(`Vos projets sont enregistrés en mémoire locale (0 perte).\n\nNote Firestore : ${msg}`);
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+
+    setIsConfirmModalOpen(true);
   };
 
-  const handleSyncDefaults = async () => {
-    try {
-      setSyncing(true);
-      await seedInitialCmsData(false);
-      setSyncSuccess(true);
-      setTimeout(() => setSyncSuccess(false), 3000);
-    } catch (err) {
-      console.error("Sync error:", err);
-      alert("Erreur lors de la synchronisation.");
-    } finally {
-      setSyncing(false);
-    }
+  const handleSyncDefaults = () => {
+    setPendingWrite({
+      title: "Synchronisation des projets par défaut",
+      description: "Cette action va injecter la liste standard des projets dans Firestore.",
+      collection: "projects",
+      payload: { action: "sync_default_projects", count: initialProjects.length },
+      actionType: "batchWrite",
+      onConfirm: async () => {
+        try {
+          setSyncing(true);
+          await seedInitialCmsData(false);
+          setSyncSuccess(true);
+          setTimeout(() => setSyncSuccess(false), 3000);
+        } catch (err) {
+          console.error("Sync error:", err);
+          alert("Erreur lors de la synchronisation.");
+        } finally {
+          setSyncing(false);
+        }
+      },
+    });
+
+    setIsConfirmModalOpen(true);
   };
 
   /**
    * Save a reordered list to Firestore in a single batch
    */
-  const saveReorderedList = async (newList: Project[]) => {
-    try {
-      setLoading(true);
-      const batch = writeBatch(db);
+  const saveReorderedList = (newList: Project[]) => {
+    const cleanList = newList.map((proj, idx) => {
+      const orderNum = idx + 1;
+      const formattedNumber = String(orderNum).padStart(2, "0");
+      return sanitizeForFirestore(
+        {
+          ...proj,
+          order: orderNum,
+          number: formattedNumber,
+          updatedAt: new Date().toISOString(),
+        },
+        { removeEmptyStrings: true, removeEmptyObjects: true }
+      );
+    });
 
-      newList.forEach((proj, idx) => {
-        const orderNum = idx + 1;
-        const formattedNumber = String(orderNum).padStart(2, "0");
-        const docRef = doc(db, "projects", proj.id);
-        batch.set(
-          docRef,
-          {
-            ...proj,
-            order: orderNum,
-            number: formattedNumber,
-            updatedAt: new Date().toISOString(),
-          },
-          { merge: true }
-        );
-      });
+    setPendingWrite({
+      title: "Enregistrement du nouvel ordre des projets",
+      description: "Validation requise. Cette action met à jour la position et l'ordre d'affichage de vos projets dans Firestore.",
+      collection: "projects",
+      payload: cleanList,
+      actionType: "batchWrite",
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          const batch = writeBatch(db);
 
-      await batch.commit();
-      setReorderSuccess(true);
-      setTimeout(() => setReorderSuccess(false), 3000);
-    } catch (err) {
-      console.error("Error saving reordered projects:", err);
-      alert("Erreur lors de l'enregistrement du nouvel ordre.");
-    } finally {
-      setLoading(false);
-    }
+          cleanList.forEach((cleanProj) => {
+            if (cleanProj && (cleanProj as Project).id) {
+              const docRef = doc(db, "projects", (cleanProj as Project).id);
+              batch.set(docRef, cleanProj as Record<string, unknown>, { merge: true });
+            }
+          });
+
+          await batch.commit();
+          setReorderSuccess(true);
+          setTimeout(() => setReorderSuccess(false), 3000);
+        } catch (err) {
+          console.error("Error saving reordered projects:", err);
+          alert("Erreur lors de l'enregistrement du nouvel ordre sur Firestore.");
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+
+    setIsConfirmModalOpen(true);
   };
 
   /**
@@ -353,58 +411,102 @@ export function ProjectsManager({
     }
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProject || !editingProject.name || !editingProject.shortDescription) return;
 
-    try {
-      setLoading(true);
-      const projId = editingProject.id || `proj-${Date.now()}`;
-      await setDoc(
-        doc(db, "projects", projId),
-        {
-          ...editingProject,
-          id: projId,
-          order: typeof editingProject.order === "number" ? editingProject.order : parseInt(editingProject.number || "99", 10) || 99,
-          updatedAt: new Date().toISOString(),
-        },
-        { merge: true }
-      );
+    const projId = editingProject.id || `proj-${Date.now()}`;
+    const cleanPayload = sanitizeForFirestore(
+      {
+        ...editingProject,
+        id: projId,
+        order:
+          typeof editingProject.order === "number"
+            ? editingProject.order
+            : parseInt(editingProject.number || "99", 10) || 99,
+        updatedAt: new Date().toISOString(),
+      },
+      { removeEmptyStrings: true, removeEmptyObjects: true }
+    ) as Record<string, unknown>;
 
-      setIsModalOpen(false);
-      setEditingProject(null);
-    } catch (err) {
-      console.error("Error saving project:", err);
-      alert("Erreur lors de la sauvegarde du projet.");
-    } finally {
-      setLoading(false);
-    }
+    setPendingWrite({
+      title: `Enregistrement du projet : ${editingProject.name}`,
+      description: "Validation requise avant mise à jour dans Firestore. Les champs vides ont été purgés pour préserver la structure de la base.",
+      collection: "projects",
+      docId: projId,
+      payload: cleanPayload,
+      actionType: "setDoc",
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          await setDoc(doc(db, "projects", projId), cleanPayload, { merge: true });
+          setIsModalOpen(false);
+          setEditingProject(null);
+        } catch (err: unknown) {
+          console.error("Error saving project:", err);
+          const msg = getFirestoreErrorMessage(err);
+          alert(`Données du projet conservées dans votre session.\n\nNote Firestore : ${msg}`);
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+
+    setIsConfirmModalOpen(true);
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = () => {
     if (!deleteConfirmId) return;
-    try {
-      setLoading(true);
-      await deleteDoc(doc(db, "projects", deleteConfirmId));
-      setDeleteConfirmId(null);
-    } catch (err) {
-      console.error("Error deleting project:", err);
-      alert("Erreur lors de la suppression.");
-    } finally {
-      setLoading(false);
-    }
+    const targetId = deleteConfirmId;
+
+    setPendingWrite({
+      title: `Suppression définitive du projet (ID: ${targetId})`,
+      description: "Validation requise. Cette action va retirer ce projet de votre base Firestore.",
+      collection: "projects",
+      docId: targetId,
+      payload: { action: "delete_project", id: targetId },
+      actionType: "deleteDoc",
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          await deleteDoc(doc(db, "projects", targetId));
+          setDeleteConfirmId(null);
+        } catch (err) {
+          console.error("Error deleting project:", err);
+          alert("Erreur lors de la suppression sur Firestore.");
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+
+    setIsConfirmModalOpen(true);
   };
 
-  const togglePublish = async (proj: Project) => {
-    try {
-      await setDoc(
-        doc(db, "projects", proj.id),
-        { published: !proj.published },
-        { merge: true }
-      );
-    } catch (err) {
-      console.error(err);
-    }
+  const togglePublish = (proj: Project) => {
+    const nextState = !proj.published;
+    setPendingWrite({
+      title: `${nextState ? "Publication" : "Dépublication"} : ${proj.name}`,
+      description: `Ce projet sera ${nextState ? "affiché publiquement sur" : "retiré du flux public de"} votre portfolio.`,
+      collection: "projects",
+      docId: proj.id,
+      payload: { published: nextState, id: proj.id },
+      actionType: "updateDoc",
+      onConfirm: async () => {
+        try {
+          await setDoc(
+            doc(db, "projects", proj.id),
+            { published: nextState, updatedAt: new Date().toISOString() },
+            { merge: true }
+          );
+        } catch (err) {
+          console.error("Toggle publish error:", err);
+          alert("Erreur lors de la mise à jour du statut sur Firestore.");
+        }
+      },
+    });
+
+    setIsConfirmModalOpen(true);
   };
 
   return (
@@ -1140,6 +1242,16 @@ export function ProjectsManager({
           </div>
         </div>
       )}
+
+      {/* Manual Confirmation Modal before any Firestore write */}
+      <ConfirmWriteModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => {
+          setIsConfirmModalOpen(false);
+          setPendingWrite(null);
+        }}
+        pendingWrite={pendingWrite}
+      />
     </div>
   );
 }

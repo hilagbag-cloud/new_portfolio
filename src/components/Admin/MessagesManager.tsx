@@ -7,7 +7,6 @@ import {
   onSnapshot,
   updateDoc,
   deleteDoc,
-  orderBy,
   query,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -20,6 +19,7 @@ import {
   User,
   MessageSquare,
 } from "lucide-react";
+import { ConfirmWriteModal, type PendingFirestoreWrite } from "./ConfirmWriteModal";
 
 interface MessageItem {
   id: string;
@@ -35,6 +35,10 @@ export function MessagesManager() {
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [selectedMessage, setSelectedMessage] = useState<MessageItem | null>(null);
   const [filter, setFilter] = useState<"all" | "unread" | "read">("all");
+
+  // Manual confirmation state
+  const [pendingWrite, setPendingWrite] = useState<PendingFirestoreWrite | null>(null);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, "messages"));
@@ -61,14 +65,27 @@ export function MessagesManager() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Supprimer définitivement ce message ?")) return;
-    try {
-      await deleteDoc(doc(db, "messages", id));
-      if (selectedMessage?.id === id) setSelectedMessage(null);
-    } catch (err) {
-      console.error(err);
-    }
+  const handleDelete = (id: string) => {
+    const target = messages.find((m) => m.id === id);
+    setPendingWrite({
+      title: `Suppression du message de ${target?.name || id}`,
+      description: "Validation requise. Cette action supprimera définitivement le message de Firestore.",
+      collection: "messages",
+      docId: id,
+      payload: { action: "delete_message", id },
+      actionType: "deleteDoc",
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, "messages", id));
+          if (selectedMessage?.id === id) setSelectedMessage(null);
+        } catch (err) {
+          console.error(err);
+          alert("Erreur lors de la suppression du message sur Firestore.");
+        }
+      },
+    });
+
+    setIsConfirmModalOpen(true);
   };
 
   const filteredMessages = messages.filter((m) => {
@@ -237,6 +254,16 @@ export function MessagesManager() {
           )}
         </div>
       </div>
+
+      {/* Manual Confirmation Modal before any Firestore write */}
+      <ConfirmWriteModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => {
+          setIsConfirmModalOpen(false);
+          setPendingWrite(null);
+        }}
+        pendingWrite={pendingWrite}
+      />
     </div>
   );
 }

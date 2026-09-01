@@ -32,6 +32,13 @@ import {
 } from "lucide-react";
 import { ImageUploader } from "./ImageUploader";
 import { seedInitialCmsData } from "@/lib/cms-seed";
+import { ConfirmWriteModal, type PendingFirestoreWrite } from "./ConfirmWriteModal";
+import {
+  sanitizeForFirestore,
+  saveLocalDraft,
+  loadLocalDraft,
+  getFirestoreErrorMessage,
+} from "@/lib/firestore-utils";
 
 function mergeMilestones(firestoreList: Milestone[]): Milestone[] {
   const mergedMap = new Map<string, Milestone>();
@@ -74,6 +81,10 @@ export function MilestonesManager({
   const [syncSuccess, setSyncSuccess] = useState(false);
   const [saveAllSuccess, setSaveAllSuccess] = useState(false);
 
+  // Manual Confirmation State
+  const [pendingWrite, setPendingWrite] = useState<PendingFirestoreWrite | null>(null);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+
   useEffect(() => {
     const unsub = onSnapshot(
       collection(db, "milestones"),
@@ -95,45 +106,76 @@ export function MilestonesManager({
   /**
    * Save all milestones to Firestore in a single batch
    */
-  const handleSaveAllMilestonesToFirestore = async () => {
-    try {
-      setLoading(true);
-      const batch = writeBatch(db);
-      milestonesList.forEach((m) => {
-        const docRef = doc(db, "milestones", m.id);
-        batch.set(
-          docRef,
-          {
-            ...m,
-            updatedAt: new Date().toISOString(),
-          },
-          { merge: true }
-        );
-      });
+  const handleSaveAllMilestonesToFirestore = () => {
+    // Backup all milestones to local storage
+    saveLocalDraft("milestones_list", milestonesList);
 
-      await batch.commit();
-      setSaveAllSuccess(true);
-      setTimeout(() => setSaveAllSuccess(false), 4000);
-    } catch (err) {
-      console.error("Error saving all milestones:", err);
-      alert("Erreur lors de la sauvegarde globale du parcours sur Firestore.");
-    } finally {
-      setLoading(false);
-    }
+    const cleanBatchPayload = milestonesList.map((m) =>
+      sanitizeForFirestore(
+        {
+          ...m,
+          updatedAt: new Date().toISOString(),
+        },
+        { removeEmptyStrings: true, removeEmptyObjects: true }
+      )
+    );
+
+    setPendingWrite({
+      title: `Sauvegarde groupée du parcours (${milestonesList.length} jalons)`,
+      description: "Validation requise pour enregistrer tous les jalons dans la collection 'milestones' de Firestore. Les champs vides ont été supprimés.",
+      collection: "milestones",
+      payload: cleanBatchPayload,
+      actionType: "batchWrite",
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          const batch = writeBatch(db);
+          cleanBatchPayload.forEach((cleanM) => {
+            if (cleanM && (cleanM as Milestone).id) {
+              const docRef = doc(db, "milestones", (cleanM as Milestone).id);
+              batch.set(docRef, cleanM as Record<string, unknown>, { merge: true });
+            }
+          });
+
+          await batch.commit();
+          setSaveAllSuccess(true);
+          setTimeout(() => setSaveAllSuccess(false), 4000);
+        } catch (err: unknown) {
+          console.error("Error saving all milestones:", err);
+          const msg = getFirestoreErrorMessage(err);
+          alert(`Parcours conservé dans votre navigateur (0 perte).\n\nNote Firestore : ${msg}`);
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+
+    setIsConfirmModalOpen(true);
   };
 
-  const handleSyncDefaults = async () => {
-    try {
-      setSyncing(true);
-      await seedInitialCmsData(false);
-      setSyncSuccess(true);
-      setTimeout(() => setSyncSuccess(false), 3000);
-    } catch (err) {
-      console.error("Sync error:", err);
-      alert("Erreur lors de la synchronisation.");
-    } finally {
-      setSyncing(false);
-    }
+  const handleSyncDefaults = () => {
+    setPendingWrite({
+      title: "Synchronisation du parcours par défaut",
+      description: "Cette action va initialiser les jalons prédéfinis du parcours dans Firestore.",
+      collection: "milestones",
+      payload: { action: "sync_default_milestones", count: initialMilestones.length },
+      actionType: "batchWrite",
+      onConfirm: async () => {
+        try {
+          setSyncing(true);
+          await seedInitialCmsData(false);
+          setSyncSuccess(true);
+          setTimeout(() => setSyncSuccess(false), 3000);
+        } catch (err) {
+          console.error("Sync error:", err);
+          alert("Erreur lors de la synchronisation.");
+        } finally {
+          setSyncing(false);
+        }
+      },
+    });
+
+    setIsConfirmModalOpen(true);
   };
 
   const handleOpenAdd = () => {
@@ -213,45 +255,72 @@ export function MilestonesManager({
     });
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingMilestone || !editingMilestone.title || !editingMilestone.shortTitle) return;
 
-    try {
-      setLoading(true);
-      const mId = editingMilestone.id || `milestone-${Date.now()}`;
-      await setDoc(
-        doc(db, "milestones", mId),
-        {
-          ...editingMilestone,
-          id: mId,
-          updatedAt: new Date().toISOString(),
-        },
-        { merge: true }
-      );
+    const mId = editingMilestone.id || `milestone-${Date.now()}`;
+    const clean = sanitizeForFirestore(
+      {
+        ...editingMilestone,
+        id: mId,
+        updatedAt: new Date().toISOString(),
+      },
+      { removeEmptyStrings: true, removeEmptyObjects: true }
+    ) as Record<string, unknown>;
 
-      setIsModalOpen(false);
-      setEditingMilestone(null);
-    } catch (err) {
-      console.error("Error saving milestone:", err);
-      alert("Erreur lors de la sauvegarde.");
-    } finally {
-      setLoading(false);
-    }
+    setPendingWrite({
+      title: `Enregistrement du jalon : ${editingMilestone.title}`,
+      description: "Validation requise avant écriture dans Firestore. Les champs vides ont été purgés pour préserver la qualité des données.",
+      collection: "milestones",
+      docId: mId,
+      payload: clean,
+      actionType: "setDoc",
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          await setDoc(doc(db, "milestones", mId), clean, { merge: true });
+          setIsModalOpen(false);
+          setEditingMilestone(null);
+        } catch (err: unknown) {
+          console.error("Error saving milestone:", err);
+          const msg = getFirestoreErrorMessage(err);
+          alert(`Données du parcours conservées en mémoire.\n\nNote Firestore : ${msg}`);
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+
+    setIsConfirmModalOpen(true);
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = () => {
     if (!deleteConfirmId) return;
-    try {
-      setLoading(true);
-      await deleteDoc(doc(db, "milestones", deleteConfirmId));
-      setDeleteConfirmId(null);
-    } catch (err) {
-      console.error("Error deleting milestone:", err);
-      alert("Erreur lors de la suppression.");
-    } finally {
-      setLoading(false);
-    }
+    const targetId = deleteConfirmId;
+
+    setPendingWrite({
+      title: `Suppression du jalon (ID: ${targetId})`,
+      description: "Validation requise. Cette action va retirer ce jalon de votre base Firestore.",
+      collection: "milestones",
+      docId: targetId,
+      payload: { action: "delete_milestone", id: targetId },
+      actionType: "deleteDoc",
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          await deleteDoc(doc(db, "milestones", targetId));
+          setDeleteConfirmId(null);
+        } catch (err) {
+          console.error("Error deleting milestone:", err);
+          alert("Erreur lors de la suppression sur Firestore.");
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+
+    setIsConfirmModalOpen(true);
   };
 
   return (
@@ -777,6 +846,16 @@ export function MilestonesManager({
           </div>
         </div>
       )}
+
+      {/* Manual Confirmation Modal before any Firestore write */}
+      <ConfirmWriteModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => {
+          setIsConfirmModalOpen(false);
+          setPendingWrite(null);
+        }}
+        pendingWrite={pendingWrite}
+      />
     </div>
   );
 }

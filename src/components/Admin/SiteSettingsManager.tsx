@@ -4,6 +4,12 @@ import { useEffect, useState } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db, resolvedFirebaseConfig } from "@/lib/firebase";
 import {
+  sanitizeForFirestore,
+  saveLocalDraft,
+  loadLocalDraft,
+  getFirestoreErrorMessage,
+} from "@/lib/firestore-utils";
+import {
   defaultSiteMetadata,
   type SiteMetadataConfig,
   type SocialVisibilityConfig,
@@ -52,6 +58,7 @@ import {
 import { seedInitialCmsData } from "@/lib/cms-seed";
 import { ImageUploader } from "./ImageUploader";
 import { HeroImageStudioModal } from "./HeroImageStudioModal";
+import { ConfirmWriteModal, type PendingFirestoreWrite } from "./ConfirmWriteModal";
 import { ThemeToggle } from "@/components/Theme/ThemeToggle";
 
 export function SiteSettingsManager({
@@ -285,131 +292,143 @@ export function SiteSettingsManager({
   const [loading, setLoading] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [copiedEnv, setCopiedEnv] = useState(false);
   const [copiedJsonLd, setCopiedJsonLd] = useState(false);
   const [copiedDns, setCopiedDns] = useState<string | null>(null);
 
+  // Manual Confirmation State
+  const [pendingWrite, setPendingWrite] = useState<PendingFirestoreWrite | null>(null);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+
   useEffect(() => {
     async function loadConfig() {
       try {
+        // Check local draft first
+        const localDraft = loadLocalDraft<SiteMetadataConfig>("site_settings");
+
         const docSnap = await getDoc(doc(db, "siteConfig", "global"));
+        let data: Partial<SiteMetadataConfig> = {};
         if (docSnap.exists()) {
-          const data = docSnap.data() as SiteMetadataConfig;
-          if (data.metaTitle) setMetaTitle(data.metaTitle);
-          if (data.metaDescription) setMetaDescription(data.metaDescription);
-          if (data.keywords) {
-            setKeywords(
-              Array.isArray(data.keywords)
-                ? data.keywords.join(", ")
-                : data.keywords
-            );
-          }
-          if (data.ogTitle) setOgTitle(data.ogTitle);
-          if (data.ogDescription) setOgDescription(data.ogDescription);
-          if (data.ogImage) setOgImage(data.ogImage);
-          if (data.siteLogo) setSiteLogo(data.siteLogo);
-          if (data.twitterCard) setTwitterCard(data.twitterCard);
-          if (data.siteUrl) setSiteUrl(data.siteUrl);
-          if (data.author) setAuthor(data.author);
-          if (data.positioning) setPositioning(data.positioning);
-          if (data.profileImage && data.profileImage !== "/hilarus.png") {
-            setProfileImage(data.profileImage);
-          } else {
-            setProfileImage("");
-            if (typeof window !== "undefined") {
-              localStorage.removeItem("cms_profile_image");
-            }
-          }
-          if (data.heroImageWidth !== undefined) setHeroImageWidth(data.heroImageWidth);
-          if (data.heroImageScale !== undefined) setHeroImageScale(data.heroImageScale);
-          if (data.heroImageFit) setHeroImageFit(data.heroImageFit);
-          if (data.tags) {
-            setTags(
-              Array.isArray(data.tags) ? data.tags.join(", ") : data.tags
-            );
-          }
-          if (data.contactText) setContactText(data.contactText);
-          if (data.contactEmail) setContactEmail(data.contactEmail);
+          data = docSnap.data() as SiteMetadataConfig;
+        }
 
-          // Google & Indexation
-          if (data.googleSiteVerification !== undefined)
-            setGoogleSiteVerification(data.googleSiteVerification);
-          if (data.bingSiteVerification !== undefined)
-            setBingSiteVerification(data.bingSiteVerification);
-          if (data.canonicalUrl) setCanonicalUrl(data.canonicalUrl);
-          if (data.robotsIndex !== undefined) setRobotsIndex(data.robotsIndex);
-          if (data.robotsFollow !== undefined) setRobotsFollow(data.robotsFollow);
-          if (data.allowAiCrawlers !== undefined)
-            setAllowAiCrawlers(data.allowAiCrawlers);
+        // If local draft exists, merge with preference to local draft so user edits are not lost
+        if (localDraft && localDraft.data) {
+          data = { ...data, ...localDraft.data };
+        }
 
-          // Identity
-          if (data.givenName) setGivenName(data.givenName);
-          if (data.familyName) setFamilyName(data.familyName);
-          if (data.additionalName) setAdditionalName(data.additionalName);
-          if (data.alternateNames) {
-            setAlternateNames(
-              Array.isArray(data.alternateNames)
-                ? data.alternateNames.join(", ")
-                : data.alternateNames
-            );
-          }
-          if (data.jobTitle) setJobTitle(data.jobTitle);
-          if (data.nationality) setNationality(data.nationality);
-          if (data.addressLocality) setAddressLocality(data.addressLocality);
-          if (data.alumniOf) setAlumniOf(data.alumniOf);
-          if (data.companyOrOrg) setCompanyOrOrg(data.companyOrOrg);
-          if (data.orgDescription) setOrgDescription(data.orgDescription);
-          if (data.knowsAbout) {
-            setKnowsAbout(
-              Array.isArray(data.knowsAbout)
-                ? data.knowsAbout.join(", ")
-                : data.knowsAbout
-            );
-          }
-          if (data.bioLong) setBioLong(data.bioLong);
-          if (data.aboutSummary) setAboutSummary(data.aboutSummary);
-          if (data.heroOfficialSync !== undefined) setHeroOfficialSync(data.heroOfficialSync);
+        if (data.metaTitle) setMetaTitle(data.metaTitle);
+        if (data.metaDescription) setMetaDescription(data.metaDescription);
+        if (data.keywords) {
+          setKeywords(
+            Array.isArray(data.keywords)
+              ? data.keywords.join(", ")
+              : data.keywords
+          );
+        }
+        if (data.ogTitle) setOgTitle(data.ogTitle);
+        if (data.ogDescription) setOgDescription(data.ogDescription);
+        if (data.ogImage) setOgImage(data.ogImage);
+        if (data.siteLogo) setSiteLogo(data.siteLogo);
+        if (data.twitterCard) setTwitterCard(data.twitterCard);
+        if (data.siteUrl) setSiteUrl(data.siteUrl);
+        if (data.author) setAuthor(data.author);
+        if (data.positioning) setPositioning(data.positioning);
+        if (data.profileImage && data.profileImage !== "/hilarus.png") {
+          setProfileImage(data.profileImage);
+        } else if (data.profileImage === "") {
+          setProfileImage("");
+        }
+        if (data.heroImageWidth !== undefined) setHeroImageWidth(data.heroImageWidth);
+        if (data.heroImageScale !== undefined) setHeroImageScale(data.heroImageScale);
+        if (data.heroImageFit) setHeroImageFit(data.heroImageFit);
+        if (data.tags) {
+          setTags(
+            Array.isArray(data.tags) ? data.tags.join(", ") : data.tags
+          );
+        }
+        if (data.contactText) setContactText(data.contactText);
+        if (data.contactEmail) setContactEmail(data.contactEmail);
 
-          if (data.socialVisibility) {
-            setSocialVisibility((prev) => ({
-              ...prev,
-              ...data.socialVisibility,
-            }));
-          }
+        // Google & Indexation
+        if (data.googleSiteVerification !== undefined)
+          setGoogleSiteVerification(data.googleSiteVerification);
+        if (data.bingSiteVerification !== undefined)
+          setBingSiteVerification(data.bingSiteVerification);
+        if (data.canonicalUrl) setCanonicalUrl(data.canonicalUrl);
+        if (data.robotsIndex !== undefined) setRobotsIndex(data.robotsIndex);
+        if (data.robotsFollow !== undefined) setRobotsFollow(data.robotsFollow);
+        if (data.allowAiCrawlers !== undefined)
+          setAllowAiCrawlers(data.allowAiCrawlers);
 
-          if (data.socials) {
-            if (data.socials.dribbble !== undefined) setDribbbleUrl(data.socials.dribbble);
-            if (data.socials.behance !== undefined) setBehanceUrl(data.socials.behance);
-            if (data.socials.linkedin !== undefined) setLinkedinUrl(data.socials.linkedin);
-            if (data.socials.twitter !== undefined) setTwitterUrl(data.socials.twitter);
-            if (data.socials.github !== undefined) setGithubUrl(data.socials.github);
-            if (data.socials.instagram !== undefined) setInstagramUrl(data.socials.instagram);
-            if (data.socials.facebook !== undefined) setFacebookUrl(data.socials.facebook);
-            if (data.socials.threads !== undefined) setThreadsUrl(data.socials.threads);
-            if (data.socials.telegram !== undefined) setTelegramUrl(data.socials.telegram);
-            if (data.socials.youtube !== undefined) setYoutubeUrl(data.socials.youtube);
-            if (data.socials.tiktok !== undefined) setTiktokUrl(data.socials.tiktok);
-            if (data.socials.discord !== undefined) setDiscordUrl(data.socials.discord);
-          }
+        // Identity
+        if (data.givenName) setGivenName(data.givenName);
+        if (data.familyName) setFamilyName(data.familyName);
+        if (data.additionalName) setAdditionalName(data.additionalName);
+        if (data.alternateNames) {
+          setAlternateNames(
+            Array.isArray(data.alternateNames)
+              ? data.alternateNames.join(", ")
+              : data.alternateNames
+          );
+        }
+        if (data.jobTitle) setJobTitle(data.jobTitle);
+        if (data.nationality) setNationality(data.nationality);
+        if (data.addressLocality) setAddressLocality(data.addressLocality);
+        if (data.alumniOf) setAlumniOf(data.alumniOf);
+        if (data.companyOrOrg) setCompanyOrOrg(data.companyOrOrg);
+        if (data.orgDescription) setOrgDescription(data.orgDescription);
+        if (data.knowsAbout) {
+          setKnowsAbout(
+            Array.isArray(data.knowsAbout)
+              ? data.knowsAbout.join(", ")
+              : data.knowsAbout
+          );
+        }
+        if (data.bioLong) setBioLong(data.bioLong);
+        if (data.aboutSummary) setAboutSummary(data.aboutSummary);
+        if (data.heroOfficialSync !== undefined) setHeroOfficialSync(data.heroOfficialSync);
 
-          if (data.contactChannels) {
-            if (data.contactChannels.whatsapp !== undefined)
-              setWhatsappUrl(data.contactChannels.whatsapp);
-            if (data.contactChannels.telegram !== undefined)
-              setTelegramUrl(data.contactChannels.telegram);
-            if (data.contactChannels.phone !== undefined)
-              setPhoneVal(data.contactChannels.phone);
-            if (data.contactChannels.calendly !== undefined)
-              setCalendlyUrl(data.contactChannels.calendly);
-            if (data.contactChannels.email !== undefined)
-              setContactEmail(data.contactChannels.email);
-            if (data.contactChannels.youtube !== undefined)
-              setYoutubeUrl(data.contactChannels.youtube);
-            if (data.contactChannels.tiktok !== undefined)
-              setTiktokUrl(data.contactChannels.tiktok);
-            if (data.contactChannels.discord !== undefined)
-              setDiscordUrl(data.contactChannels.discord);
-          }
+        if (data.socialVisibility) {
+          setSocialVisibility((prev) => ({
+            ...prev,
+            ...data.socialVisibility,
+          }));
+        }
+
+        if (data.socials) {
+          if (data.socials.dribbble !== undefined) setDribbbleUrl(data.socials.dribbble);
+          if (data.socials.behance !== undefined) setBehanceUrl(data.socials.behance);
+          if (data.socials.linkedin !== undefined) setLinkedinUrl(data.socials.linkedin);
+          if (data.socials.twitter !== undefined) setTwitterUrl(data.socials.twitter);
+          if (data.socials.github !== undefined) setGithubUrl(data.socials.github);
+          if (data.socials.instagram !== undefined) setInstagramUrl(data.socials.instagram);
+          if (data.socials.facebook !== undefined) setFacebookUrl(data.socials.facebook);
+          if (data.socials.threads !== undefined) setThreadsUrl(data.socials.threads);
+          if (data.socials.telegram !== undefined) setTelegramUrl(data.socials.telegram);
+          if (data.socials.youtube !== undefined) setYoutubeUrl(data.socials.youtube);
+          if (data.socials.tiktok !== undefined) setTiktokUrl(data.socials.tiktok);
+          if (data.socials.discord !== undefined) setDiscordUrl(data.socials.discord);
+        }
+
+        if (data.contactChannels) {
+          if (data.contactChannels.whatsapp !== undefined)
+            setWhatsappUrl(data.contactChannels.whatsapp);
+          if (data.contactChannels.telegram !== undefined)
+            setTelegramUrl(data.contactChannels.telegram);
+          if (data.contactChannels.phone !== undefined)
+            setPhoneVal(data.contactChannels.phone);
+          if (data.contactChannels.calendly !== undefined)
+            setCalendlyUrl(data.contactChannels.calendly);
+          if (data.contactChannels.email !== undefined)
+            setContactEmail(data.contactChannels.email);
+          if (data.contactChannels.youtube !== undefined)
+            setYoutubeUrl(data.contactChannels.youtube);
+          if (data.contactChannels.tiktok !== undefined)
+            setTiktokUrl(data.contactChannels.tiktok);
+          if (data.contactChannels.discord !== undefined)
+            setDiscordUrl(data.contactChannels.discord);
         }
       } catch (err) {
         console.error("Error loading site config:", err);
@@ -443,148 +462,185 @@ export function SiteSettingsManager({
     }
   };
 
-  const handleSave = async (e?: React.FormEvent, sectionLabel?: string) => {
+  const handleSave = (e?: React.FormEvent, sectionLabel?: string) => {
     if (e) e.preventDefault();
-    try {
-      setLoading(true);
-      if (typeof window !== "undefined" && profileImage) {
-        try {
-          localStorage.setItem("cms_profile_image", profileImage);
-        } catch {
-          // ignore
-        }
+    setSaveError(null);
+
+    const payload: SiteMetadataConfig = {
+      metaTitle: metaTitle || "",
+      metaDescription: metaDescription || "",
+      keywords: (keywords || "")
+        .split(",")
+        .map((k) => k.trim())
+        .filter(Boolean),
+      ogTitle: ogTitle || metaTitle || "",
+      ogDescription: ogDescription || metaDescription || "",
+      ogImage: ogImage || "",
+      siteLogo: siteLogo || "",
+      profileImage: profileImage || "",
+      heroOfficialSync: Boolean(heroOfficialSync),
+      heroImageWidth: Number(heroImageWidth) || 560,
+      heroImageScale: Number(heroImageScale) || 1.0,
+      heroImageFit: heroImageFit || "contain",
+      twitterCard: twitterCard || "summary_large_image",
+      siteUrl: siteUrl || "https://hilarus.dev",
+      author: author || "Hilarus Gbagoule",
+      positioning: positioning || "",
+      tags: (tags || "")
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean),
+      contactText: contactText || "",
+      contactEmail: contactEmail || "",
+
+      // Search Engine & Google Controls
+      googleSiteVerification: googleSiteVerification || "",
+      bingSiteVerification: bingSiteVerification || "",
+      canonicalUrl: canonicalUrl || siteUrl || "https://hilarus.dev",
+      robotsIndex: Boolean(robotsIndex),
+      robotsFollow: Boolean(robotsFollow),
+      allowAiCrawlers: Boolean(allowAiCrawlers),
+
+      // Personal Identity & Knowledge Graph
+      givenName: givenName || "Hilarus",
+      familyName: familyName || "Gbagoule",
+      additionalName: additionalName || "Kazak",
+      alternateNames: (alternateNames || "")
+        .split(",")
+        .map((n) => n.trim())
+        .filter(Boolean),
+      jobTitle: jobTitle || "",
+      nationality: nationality || "Bénin",
+      addressLocality: addressLocality || "Cotonou",
+      addressCountry: nationality || "Bénin",
+      alumniOf: alumniOf || "",
+      companyOrOrg: companyOrOrg || "GB Labs",
+      orgDescription: orgDescription || "",
+      knowsAbout: (knowsAbout || "")
+        .split(",")
+        .map((k) => k.trim())
+        .filter(Boolean),
+      bioLong: bioLong || "",
+      aboutSummary: aboutSummary || "",
+
+      socialVisibility: socialVisibility || {},
+      socials: {
+        dribbble: dribbbleUrl || "",
+        behance: behanceUrl || "",
+        linkedin: linkedinUrl || "",
+        twitter: twitterUrl || "",
+        github: githubUrl || "",
+        instagram: instagramUrl || "",
+        facebook: facebookUrl || "",
+        threads: threadsUrl || "",
+        whatsapp: whatsappUrl || "",
+        telegram: telegramUrl || "",
+        youtube: youtubeUrl || "",
+        tiktok: tiktokUrl || "",
+        discord: discordUrl || "",
+      },
+      contactChannels: {
+        email: contactEmail || "",
+        whatsapp: whatsappUrl || "",
+        telegram: telegramUrl || "",
+        linkedin: linkedinUrl || "",
+        instagram: instagramUrl || "",
+        facebook: facebookUrl || "",
+        threads: threadsUrl || "",
+        twitter: twitterUrl || "",
+        github: githubUrl || "",
+        youtube: youtubeUrl || "",
+        tiktok: tiktokUrl || "",
+        discord: discordUrl || "",
+        phone: phoneVal || "",
+        calendly: calendlyUrl || "",
+      },
+    };
+
+    // 1. Immediately backup to local draft so user never loses their changes
+    saveLocalDraft("site_settings", payload);
+
+    if (typeof window !== "undefined" && profileImage) {
+      try {
+        localStorage.setItem("cms_profile_image", profileImage);
+      } catch {
+        // ignore
       }
-      const payload: SiteMetadataConfig = {
-        metaTitle,
-        metaDescription,
-        keywords: keywords
-          .split(",")
-          .map((k) => k.trim())
-          .filter(Boolean),
-        ogTitle: ogTitle || metaTitle,
-        ogDescription: ogDescription || metaDescription,
-        ogImage,
-        siteLogo,
-        profileImage,
-        heroOfficialSync,
-        heroImageWidth: Number(heroImageWidth) || 560,
-        heroImageScale: Number(heroImageScale) || 1.0,
-        heroImageFit,
-        twitterCard,
-        siteUrl,
-        author,
-        positioning,
-        tags: tags
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean),
-        contactText,
-        contactEmail,
-
-        // Search Engine & Google Controls
-        googleSiteVerification,
-        bingSiteVerification,
-        canonicalUrl: canonicalUrl || siteUrl,
-        robotsIndex,
-        robotsFollow,
-        allowAiCrawlers,
-
-        // Personal Identity & Knowledge Graph
-        givenName,
-        familyName,
-        additionalName,
-        alternateNames: alternateNames
-          .split(",")
-          .map((n) => n.trim())
-          .filter(Boolean),
-        jobTitle,
-        nationality,
-        addressLocality,
-        addressCountry: nationality,
-        alumniOf,
-        companyOrOrg,
-        orgDescription,
-        knowsAbout: knowsAbout
-          .split(",")
-          .map((k) => k.trim())
-          .filter(Boolean),
-        bioLong,
-        aboutSummary,
-
-        socialVisibility,
-        socials: {
-          dribbble: dribbbleUrl,
-          behance: behanceUrl,
-          linkedin: linkedinUrl,
-          twitter: twitterUrl,
-          github: githubUrl,
-          instagram: instagramUrl,
-          facebook: facebookUrl,
-          threads: threadsUrl,
-          whatsapp: whatsappUrl,
-          telegram: telegramUrl,
-          youtube: youtubeUrl,
-          tiktok: tiktokUrl,
-          discord: discordUrl,
-        },
-        contactChannels: {
-          email: contactEmail,
-          whatsapp: whatsappUrl,
-          telegram: telegramUrl,
-          linkedin: linkedinUrl,
-          instagram: instagramUrl,
-          facebook: facebookUrl,
-          threads: threadsUrl,
-          twitter: twitterUrl,
-          github: githubUrl,
-          youtube: youtubeUrl,
-          tiktok: tiktokUrl,
-          discord: discordUrl,
-          phone: phoneVal,
-          calendly: calendlyUrl,
-        },
-      };
-
-      await setDoc(
-        doc(db, "siteConfig", "global"),
-        {
-          ...payload,
-          updatedAt: new Date().toISOString(),
-        },
-        { merge: true }
-      );
-
-      setSaved(true);
-      if (sectionLabel) {
-        setSavedSection(sectionLabel);
-        setTimeout(() => setSavedSection(null), 4000);
-      }
-      setTimeout(() => setSaved(false), 3500);
-    } catch (err) {
-      console.error("Error saving site config to Firestore:", err);
-      alert("Erreur lors de la sauvegarde sur Firebase.");
-    } finally {
-      setLoading(false);
     }
+
+    // 2. Sanitize deeply to strip out empty strings and empty objects
+    const sanitizedPayload = sanitizeForFirestore(payload, {
+      removeEmptyStrings: true,
+      removeEmptyArrays: false,
+      removeEmptyObjects: true,
+    }) as Record<string, unknown>;
+
+    // 3. Require manual confirmation modal before writing to Firestore
+    setPendingWrite({
+      title: `Enregistrement des paramètres globaux ${sectionLabel ? `(${sectionLabel})` : ""}`,
+      description: "Validation requise avant écriture dans Firestore. Les champs vides ont été purgés pour garder la base de données optimisée.",
+      collection: "siteConfig",
+      docId: "global",
+      payload: sanitizedPayload,
+      actionType: "setDoc",
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          await setDoc(
+            doc(db, "siteConfig", "global"),
+            {
+              ...sanitizedPayload,
+              updatedAt: new Date().toISOString(),
+            },
+            { merge: true }
+          );
+
+          setSaved(true);
+          if (sectionLabel) {
+            setSavedSection(sectionLabel);
+            setTimeout(() => setSavedSection(null), 4000);
+          }
+          setTimeout(() => setSaved(false), 3500);
+        } catch (err: unknown) {
+          console.error("Error saving site config to Firestore:", err);
+          const errorDetail = getFirestoreErrorMessage(err);
+          setSaveError(errorDetail);
+          alert(
+            `Progression sauvegardée localement dans votre navigateur.\n\nNote Firestore : ${errorDetail}`
+          );
+        } finally {
+          setLoading(false);
+        }
+      },
+      onReject: () => {
+        // User explicitly rejected write
+      },
+    });
+
+    setIsConfirmModalOpen(true);
   };
 
-  const handleSeedDatabase = async () => {
-    if (
-      !confirm(
-        "Synchroniser la base Firestore avec les données par défaut du portfolio ?"
-      )
-    )
-      return;
-    try {
-      setSeeding(true);
-      await seedInitialCmsData();
-      alert("Données Firestore synchronisées avec succès !");
-    } catch (err) {
-      console.error(err);
-      alert("Erreur lors de la synchronisation");
-    } finally {
-      setSeeding(false);
-    }
+  const handleSeedDatabase = () => {
+    setPendingWrite({
+      title: "Synchronisation globale des données initiales",
+      description: "Cette action va initialiser ou synchroniser les collections 'siteConfig', 'projects' et 'milestones' sur votre base Firestore.",
+      collection: "multi-collections (siteConfig, projects, milestones)",
+      payload: { action: "seed_initial_defaults", timestamp: new Date().toISOString() },
+      actionType: "batchWrite",
+      onConfirm: async () => {
+        try {
+          setSeeding(true);
+          await seedInitialCmsData();
+          alert("Données Firestore synchronisées avec succès !");
+        } catch (err) {
+          console.error(err);
+          alert("Erreur lors de la synchronisation");
+        } finally {
+          setSeeding(false);
+        }
+      },
+    });
+    setIsConfirmModalOpen(true);
   };
 
   const envVariablesString = `# === VERCEL / NEXT.JS PRODUCTION ENV ===
@@ -798,6 +854,21 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
         <div className="flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/15 p-3 text-xs text-emerald-300">
           <Check size={16} />
           <span>Section <strong>{savedSection}</strong> validée et enregistrée avec succès sur Firestore !</span>
+        </div>
+      )}
+
+      {/* Safety alert banner when Firestore sync faces an issue */}
+      {saveError && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-xs text-amber-200 shadow-sm">
+          <AlertCircle size={18} className="text-amber-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-bold text-amber-300">
+              Progression sécurisée localement dans votre navigateur (0 perte de données)
+            </p>
+            <p className="text-amber-200/80 text-[11px] leading-relaxed">
+              Vos modifications et saisies sont conservées en mémoire et en cache local. {saveError}
+            </p>
+          </div>
         </div>
       )}
 
@@ -2602,6 +2673,16 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
           }}
         />
       )}
+
+      {/* Manual Confirmation Modal before any Firestore write */}
+      <ConfirmWriteModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => {
+          setIsConfirmModalOpen(false);
+          setPendingWrite(null);
+        }}
+        pendingWrite={pendingWrite}
+      />
     </div>
   );
 }
