@@ -54,7 +54,24 @@ import { ImageUploader } from "./ImageUploader";
 import { HeroImageStudioModal } from "./HeroImageStudioModal";
 import { ThemeToggle } from "@/components/Theme/ThemeToggle";
 
-export function SiteSettingsManager() {
+export function SiteSettingsManager({
+  isEditingEnabled: globalEditingEnabled,
+  setIsEditingEnabled: setGlobalEditingEnabled,
+}: {
+  isEditingEnabled?: boolean;
+  setIsEditingEnabled?: (enabled: boolean) => void;
+} = {}) {
+  const [localEditingEnabled, setLocalEditingEnabled] = useState(false);
+  const isEditingEnabled =
+    globalEditingEnabled !== undefined ? globalEditingEnabled : localEditingEnabled;
+  const toggleEditing = () => {
+    if (setGlobalEditingEnabled) {
+      setGlobalEditingEnabled(!isEditingEnabled);
+    } else {
+      setLocalEditingEnabled(!isEditingEnabled);
+    }
+  };
+
   const [activeSubTab, setActiveSubTab] = useState<
     "seo" | "identity" | "appearance" | "content" | "dns"
   >("seo");
@@ -127,8 +144,7 @@ export function SiteSettingsManager() {
     defaultSiteMetadata.addressLocality || "Cotonou"
   );
   const [alumniOf, setAlumniOf] = useState(
-    defaultSiteMetadata.alumniOf ||
-      "EPITA — École pour l'informatique et les techniques avancées"
+    defaultSiteMetadata.alumniOf || ""
   );
   const [companyOrOrg, setCompanyOrOrg] = useState(
     defaultSiteMetadata.companyOrOrg || "GB Labs"
@@ -144,6 +160,12 @@ export function SiteSettingsManager() {
   const [bioLong, setBioLong] = useState(
     defaultSiteMetadata.bioLong ||
       "Digital Builder & Product Engineer spécialisé dans la convergence du design d'expérience (UI/UX), de l'ingénierie logicielle (Next.js, TypeScript) et de l'intelligence artificielle (Gemini, pipelines de données multimodaux)."
+  );
+  const [aboutSummary, setAboutSummary] = useState(
+    defaultSiteMetadata.aboutSummary || ""
+  );
+  const [heroOfficialSync, setHeroOfficialSync] = useState(
+    defaultSiteMetadata.heroOfficialSync ?? true
   );
 
   // Content state
@@ -345,6 +367,8 @@ export function SiteSettingsManager() {
             );
           }
           if (data.bioLong) setBioLong(data.bioLong);
+          if (data.aboutSummary) setAboutSummary(data.aboutSummary);
+          if (data.heroOfficialSync !== undefined) setHeroOfficialSync(data.heroOfficialSync);
 
           if (data.socialVisibility) {
             setSocialVisibility((prev) => ({
@@ -394,8 +418,18 @@ export function SiteSettingsManager() {
     loadConfig();
   }, []);
 
+  const [savedSection, setSavedSection] = useState<string | null>(null);
+
   const handleProfileImageUpdate = (val: string) => {
     setProfileImage(val);
+    if (heroOfficialSync) {
+      if (!ogImage || ogImage === profileImage) {
+        setOgImage(val);
+      }
+      if (!siteLogo || siteLogo === profileImage) {
+        setSiteLogo(val);
+      }
+    }
     if (typeof window !== "undefined") {
       try {
         if (val) {
@@ -409,7 +443,7 @@ export function SiteSettingsManager() {
     }
   };
 
-  const handleSave = async (e?: React.FormEvent) => {
+  const handleSave = async (e?: React.FormEvent, sectionLabel?: string) => {
     if (e) e.preventDefault();
     try {
       setLoading(true);
@@ -432,6 +466,7 @@ export function SiteSettingsManager() {
         ogImage,
         siteLogo,
         profileImage,
+        heroOfficialSync,
         heroImageWidth: Number(heroImageWidth) || 560,
         heroImageScale: Number(heroImageScale) || 1.0,
         heroImageFit,
@@ -474,6 +509,7 @@ export function SiteSettingsManager() {
           .map((k) => k.trim())
           .filter(Boolean),
         bioLong,
+        aboutSummary,
 
         socialVisibility,
         socials: {
@@ -519,6 +555,10 @@ export function SiteSettingsManager() {
       );
 
       setSaved(true);
+      if (sectionLabel) {
+        setSavedSection(sectionLabel);
+        setTimeout(() => setSavedSection(null), 4000);
+      }
       setTimeout(() => setSaved(false), 3500);
     } catch (err) {
       console.error("Error saving site config to Firestore:", err);
@@ -664,7 +704,7 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
             }`}
           >
             <Palette size={14} />
-            <span>Thème & Couleurs (Vert/Noir vs Blanc/Noir)</span>
+            <span>Thème & Couleurs</span>
           </button>
           <button
             type="button"
@@ -676,7 +716,7 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
             }`}
           >
             <Sliders size={14} />
-            <span>Textes & Photo Hero</span>
+            <span>Textes, Photo Hero & Réseaux</span>
           </button>
           <button
             type="button"
@@ -692,6 +732,74 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
           </button>
         </div>
       </div>
+
+      {/* Global Edit Lock Status Banner */}
+      {!isEditingEnabled ? (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-amber-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0">
+              <Shield size={18} />
+            </div>
+            <div>
+              <h4 className="font-bold text-xs sm:text-sm text-amber-300">
+                Mode Consultation Sécurisé (Édition Verrouillée)
+              </h4>
+              <p className="text-[11px] text-amber-200/80">
+                Les champs, descriptions, photos et réseaux sont protégés contre toute modification accidentelle. Cliquez sur Activer pour modifier.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={toggleEditing}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 px-4 py-2 text-xs font-bold text-black hover:bg-amber-300 transition-colors shrink-0 shadow-md"
+          >
+            <span>🔓 Activer le Mode Édition</span>
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-emerald-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
+              <Check size={18} />
+            </div>
+            <div>
+              <h4 className="font-bold text-xs sm:text-sm text-emerald-300">
+                Mode Édition Déverrouillé
+              </h4>
+              <p className="text-[11px] text-emerald-200/80">
+                Vous pouvez modifier toutes les sections. Cliquez sur &quot;Valider et Appliquer cette section&quot; pour enregistrer définitivement sur Firebase.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleSave(undefined, "Toutes les configurations")}
+              disabled={loading}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-400 px-4 py-2 text-xs font-bold text-black hover:bg-emerald-300 transition-colors shadow-md disabled:opacity-50"
+            >
+              {loading ? <RefreshCw size={13} className="animate-spin" /> : <Save size={13} />}
+              <span>Tout Sauvegarder Définitivement</span>
+            </button>
+            <button
+              type="button"
+              onClick={toggleEditing}
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-500/30 bg-surface px-3 py-2 text-xs font-semibold text-text hover:bg-white/5"
+            >
+              <span>🔒 Verrouiller</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Section validation feedback banner */}
+      {savedSection && (
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/15 p-3 text-xs text-emerald-300">
+          <Check size={16} />
+          <span>Section <strong>{savedSection}</strong> validée et enregistrée avec succès sur Firestore !</span>
+        </div>
+      )}
 
       {/* Tab 1: SEO, Google Verification & Robots */}
       {activeSubTab === "seo" && (
@@ -1511,6 +1619,32 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
               aspectRatio="1/1"
               showCropTool={true}
             />
+
+            {/* Hero & Official Sync Option */}
+            <div className="mt-3">
+              <label className="flex items-center gap-3 p-3.5 rounded-xl border border-accent/30 bg-accent/10 cursor-pointer text-xs">
+                <input
+                  type="checkbox"
+                  checked={heroOfficialSync}
+                  onChange={(e) => {
+                    setHeroOfficialSync(e.target.checked);
+                    if (e.target.checked && profileImage) {
+                      setOgImage(profileImage);
+                      setSiteLogo(profileImage);
+                    }
+                  }}
+                  className="accent-accent h-4 w-4 rounded cursor-pointer"
+                />
+                <div>
+                  <span className="font-bold text-text block">
+                    Synchroniser avec l&apos;Image Officielle & OpenGraph (Partage Réseaux)
+                  </span>
+                  <span className="text-muted text-[11px]">
+                    Applique automatiquement la photo du Hero à la balise OpenGraph (partage Facebook, LinkedIn, Twitter) et à l&apos;image officielle du schéma de données.
+                  </span>
+                </div>
+              </label>
+            </div>
 
             {/* Custom Width & Scaling Controls for Hero */}
             <div className="mt-4 rounded-xl border border-accent/20 bg-accent/5 p-4 space-y-4">

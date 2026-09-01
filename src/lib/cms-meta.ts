@@ -92,6 +92,8 @@ export interface SiteMetadataConfig {
   addressLocality?: string;
   addressCountry?: string;
   alumniOf?: string;
+  aboutSummary?: string;
+  heroOfficialSync?: boolean;
   knowsAbout?: string[];
 
   // Google Indexation & Search Verification
@@ -115,7 +117,6 @@ export const defaultSiteMetadata: SiteMetadataConfig = {
     "Hilarus Gbagoule développeur",
     "Hilarus Gbagoule designer",
     "Hilarus Gbagoule ingénieur IA",
-    "Hilarus Gbagoule EPITA",
     "Digital Builder",
     "Product Engineer",
     "Fullstack Engineer",
@@ -143,6 +144,7 @@ export const defaultSiteMetadata: SiteMetadataConfig = {
   heroImageScale: 1.05,
   heroImageFit: "contain",
   heroImageAspect: "auto",
+  heroOfficialSync: true,
   twitterCard: "summary_large_image",
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://hilarus.dev",
   author: "Hilarus Gbagoule",
@@ -162,7 +164,8 @@ export const defaultSiteMetadata: SiteMetadataConfig = {
   nationality: "Bénin",
   addressLocality: "Cotonou",
   addressCountry: "Bénin",
-  alumniOf: "EPITA — École pour l'informatique et les techniques avancées",
+  alumniOf: "",
+  aboutSummary: "",
   knowsAbout: [
     "Artificial Intelligence",
     "Machine Learning",
@@ -274,7 +277,7 @@ export function buildJsonLdSchema(config: SiteMetadataConfig) {
     : [authorName, givenName, `${givenName} ${additionalName}`];
   const jobTitle = config.jobTitle || "Digital Builder & Product Engineer";
   const nationality = config.nationality || "Bénin";
-  const alumni = config.alumniOf || "EPITA — École pour l'informatique et les techniques avancées";
+  const alumni = config.alumniOf || "";
   const knowsAbout = config.knowsAbout?.length ? config.knowsAbout : defaultSiteMetadata.knowsAbout!;
 
   const visibility = config.socialVisibility || defaultSiteMetadata.socialVisibility || {};

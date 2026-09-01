@@ -15,51 +15,33 @@ export type CmsMergedSiteConfig = typeof defaultSite & SiteMetadataConfig;
  * - If default projects are not in Firestore, keep them in the list so nothing disappears.
  */
 function mergeProjects(firestoreList: Project[]): Project[] {
-  const mergedMap = new Map<string, Project>();
-
-  // 1. Put all default projects
-  defaultProjects.forEach((p) => {
-    mergedMap.set(p.id, { ...p });
-  });
-
-  // 2. Overlay Firestore projects (edited or new)
-  firestoreList.forEach((p) => {
-    const existing = mergedMap.get(p.id);
-    mergedMap.set(p.id, { ...existing, ...p });
-  });
-
-  return Array.from(mergedMap.values()).sort((a, b) => {
-    const orderA =
-      typeof a.order === "number"
-        ? a.order
-        : parseInt(a.number || "999", 10) || 999;
-    const orderB =
-      typeof b.order === "number"
-        ? b.order
-        : parseInt(b.number || "999", 10) || 999;
-    if (orderA !== orderB) return orderA - orderB;
-    return (a.number || "").localeCompare(b.number || "");
-  });
+  if (firestoreList && firestoreList.length > 0) {
+    return [...firestoreList].sort((a, b) => {
+      const orderA =
+        typeof a.order === "number"
+          ? a.order
+          : parseInt(a.number || "999", 10) || 999;
+      const orderB =
+        typeof b.order === "number"
+          ? b.order
+          : parseInt(b.number || "999", 10) || 999;
+      if (orderA !== orderB) return orderA - orderB;
+      return (a.number || "").localeCompare(b.number || "");
+    });
+  }
+  return defaultProjects;
 }
 
 /**
  * Merge Firestore milestones with default milestones
  */
 function mergeMilestones(firestoreList: Milestone[]): Milestone[] {
-  const mergedMap = new Map<string, Milestone>();
-
-  defaultMilestones.forEach((m) => {
-    mergedMap.set(m.id, { ...m });
-  });
-
-  firestoreList.forEach((m) => {
-    const existing = mergedMap.get(m.id);
-    mergedMap.set(m.id, { ...existing, ...m });
-  });
-
-  const list = Array.from(mergedMap.values());
-  list.sort((a, b) => (a.progress || 0) - (b.progress || 0));
-  return list;
+  if (firestoreList && firestoreList.length > 0) {
+    return [...firestoreList].sort(
+      (a, b) => (a.progress || 0) - (b.progress || 0)
+    );
+  }
+  return defaultMilestones;
 }
 
 export function useCmsProjects() {

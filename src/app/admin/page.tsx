@@ -28,6 +28,7 @@ type Tab = "analytics" | "projects" | "milestones" | "messages" | "settings";
 export default function AdminPage() {
   const { user, loading, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("analytics");
+  const [isEditingEnabled, setIsEditingEnabled] = useState(false);
 
   if (loading) {
     return (
@@ -78,6 +79,27 @@ export default function AdminPage() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Global Edit Lock Control */}
+            <button
+              type="button"
+              onClick={() => setIsEditingEnabled(!isEditingEnabled)}
+              className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all shadow-sm ${
+                isEditingEnabled
+                  ? "border-amber-500/80 bg-amber-500/15 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.2)]"
+                  : "border-border bg-surface text-muted hover:border-accent hover:text-accent"
+              }`}
+              title={
+                isEditingEnabled
+                  ? "Mode édition activé : les modifications et saisies sont autorisées"
+                  : "Mode sécurisé : verrouillez ou déverrouillez l'édition pour modifier le site"
+              }
+            >
+              <span className="text-sm">{isEditingEnabled ? "🔓" : "🔒"}</span>
+              <span className="hidden sm:inline">
+                {isEditingEnabled ? "Édition Déverrouillée" : "Édition Verrouillée"}
+              </span>
+            </button>
+
             {/* Quick Theme Switcher for Admin */}
             <ThemeToggle variant="compact" />
 
@@ -130,10 +152,25 @@ export default function AdminPage() {
         {/* Tab Content Stage */}
         <main className="mt-8 flex-1">
           {activeTab === "analytics" && <AnalyticsDashboard />}
-          {activeTab === "projects" && <ProjectsManager />}
-          {activeTab === "milestones" && <MilestonesManager />}
+          {activeTab === "projects" && (
+            <ProjectsManager
+              isEditingEnabled={isEditingEnabled}
+              setIsEditingEnabled={setIsEditingEnabled}
+            />
+          )}
+          {activeTab === "milestones" && (
+            <MilestonesManager
+              isEditingEnabled={isEditingEnabled}
+              setIsEditingEnabled={setIsEditingEnabled}
+            />
+          )}
           {activeTab === "messages" && <MessagesManager />}
-          {activeTab === "settings" && <SiteSettingsManager />}
+          {activeTab === "settings" && (
+            <SiteSettingsManager
+              isEditingEnabled={isEditingEnabled}
+              setIsEditingEnabled={setIsEditingEnabled}
+            />
+          )}
         </main>
       </div>
     </div>

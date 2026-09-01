@@ -68,7 +68,24 @@ function mergeProjects(firestoreList: Project[]): Project[] {
   });
 }
 
-export function ProjectsManager() {
+export function ProjectsManager({
+  isEditingEnabled: globalEditingEnabled,
+  setIsEditingEnabled: setGlobalEditingEnabled,
+}: {
+  isEditingEnabled?: boolean;
+  setIsEditingEnabled?: (enabled: boolean) => void;
+} = {}) {
+  const [localEditingEnabled, setLocalEditingEnabled] = useState(false);
+  const isEditingEnabled =
+    globalEditingEnabled !== undefined ? globalEditingEnabled : localEditingEnabled;
+  const toggleEditing = () => {
+    if (setGlobalEditingEnabled) {
+      setGlobalEditingEnabled(!isEditingEnabled);
+    } else {
+      setLocalEditingEnabled(!isEditingEnabled);
+    }
+  };
+
   const [projectsList, setProjectsList] = useState<Project[]>(initialProjects);
   const [editingProject, setEditingProject] = useState<Partial<Project> | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -76,6 +93,7 @@ export function ProjectsManager() {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState(false);
+  const [saveAllSuccess, setSaveAllSuccess] = useState(false);
   const [reorderSuccess, setReorderSuccess] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"all" | "published" | "draft">("all");
   const [isReorderMode, setIsReorderMode] = useState(false);
@@ -97,6 +115,40 @@ export function ProjectsManager() {
     );
     return () => unsub();
   }, []);
+
+  /**
+   * Save all current projects (drafts & published) permanently to Firestore in one batch
+   */
+  const handleSaveAllProjectsToFirestore = async () => {
+    try {
+      setLoading(true);
+      const batch = writeBatch(db);
+      projectsList.forEach((proj, idx) => {
+        const orderNum = typeof proj.order === "number" ? proj.order : idx + 1;
+        const formattedNumber = String(orderNum).padStart(2, "0");
+        const docRef = doc(db, "projects", proj.id);
+        batch.set(
+          docRef,
+          {
+            ...proj,
+            order: orderNum,
+            number: formattedNumber,
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
+      });
+
+      await batch.commit();
+      setSaveAllSuccess(true);
+      setTimeout(() => setSaveAllSuccess(false), 4000);
+    } catch (err) {
+      console.error("Error saving all projects to Firestore:", err);
+      alert("Erreur lors de la sauvegarde globale des projets sur Firestore.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSyncDefaults = async () => {
     try {
@@ -370,11 +422,23 @@ export function ProjectsManager() {
             </span>
           </div>
           <p className="text-xs text-muted mt-1">
-            Organisez l&apos;ordre d&apos;affichage, promouvez vos meilleurs projets (BacPilot, GB Labs) et éditez les contenus en direct.
+            Organisez l&apos;ordre d&apos;affichage, promouvez vos meilleurs projets (BacPilot, GB Labs) et sauvegardez tous vos brouillons et projets définitivement sur Firebase.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Save All Projects Batch button */}
+          <button
+            type="button"
+            onClick={handleSaveAllProjectsToFirestore}
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-400 px-3.5 py-2 text-xs font-bold text-black hover:bg-emerald-300 transition-colors shadow-sm disabled:opacity-50"
+            title="Enregistre définitivement tous les projets (publiés et brouillons) en un seul lot sur Firestore"
+          >
+            {loading ? <RefreshCw size={13} className="animate-spin" /> : <FolderArchive size={13} />}
+            <span>{saveAllSuccess ? "Tous les projets sauvegardés !" : "Sauvegarder Tous les Projets"}</span>
+          </button>
+
           {/* Order mode toggle */}
           <button
             type="button"
@@ -403,13 +467,71 @@ export function ProjectsManager() {
           <button
             type="button"
             onClick={() => handleOpenAdd("software")}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-xs font-bold text-bg transition-transform hover:scale-105 focus-ring shadow-sm"
+            disabled={!isEditingEnabled}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-xs font-bold text-bg transition-transform hover:scale-105 focus-ring shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Plus size={15} />
             <span>Nouveau Projet</span>
           </button>
         </div>
       </div>
+
+      {/* Global Edit Lock Status Banner */}
+      {!isEditingEnabled ? (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-amber-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0">
+              <Sparkles size={18} />
+            </div>
+            <div>
+              <h4 className="font-bold text-xs sm:text-sm text-amber-300">
+                Mode Consultation Sécurisé — Projets Verrouillés
+              </h4>
+              <p className="text-[11px] text-amber-200/80">
+                L&apos;ajout, la suppression et la modification des projets nécessitent d&apos;activer le mode édition.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={toggleEditing}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 px-4 py-2 text-xs font-bold text-black hover:bg-amber-300 transition-colors shrink-0 shadow-md"
+          >
+            <span>🔓 Activer le Mode Édition</span>
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-emerald-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
+              <Check size={18} />
+            </div>
+            <div>
+              <h4 className="font-bold text-xs sm:text-sm text-emerald-300">
+                Mode Édition Déverrouillé
+              </h4>
+              <p className="text-[11px] text-emerald-200/80">
+                Vous pouvez ajouter, réordonner, publier ou modifier chaque projet. Enregistrez individuellement ou utilisez le bouton vert pour figer tous les projets.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={toggleEditing}
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-500/30 bg-surface px-3 py-2 text-xs font-semibold text-text hover:bg-white/5 shrink-0"
+          >
+            <span>🔒 Verrouiller</span>
+          </button>
+        </div>
+      )}
+
+      {/* Save all feedback */}
+      {saveAllSuccess && (
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/15 p-3 text-xs text-emerald-300">
+          <Check size={16} />
+          <span>L&apos;intégralité des {projectsList.length} projets (y compris les brouillons) a été synchronisée et sauvegardée avec succès sur Firebase !</span>
+        </div>
+      )}
 
       {/* Flagship Quick Action Banner */}
       <div className="rounded-2xl border border-accent/40 bg-gradient-to-r from-accent/10 via-surface/60 to-surface/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
