@@ -117,8 +117,9 @@ export function MilestoneContent({
                 src={coverImageUrl}
                 alt={milestone.title}
                 fill
+                unoptimized={coverImageUrl.startsWith("data:")}
                 className="object-cover transition-transform duration-700 group-hover:scale-105"
-                sizes="(max-width: 768px) 100vw, 600px"
+                sizes="(max-width: 768px) 100vw, 800px"
                 priority
                 referrerPolicy="no-referrer"
               />

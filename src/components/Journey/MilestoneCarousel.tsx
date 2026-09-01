@@ -104,8 +104,9 @@ export function MilestoneCarousel({
               src={currentItem.url}
               alt={currentItem.alt || milestoneTitle}
               fill
+              unoptimized={currentItem.url.startsWith("data:")}
               className="object-cover transition-transform duration-700 group-hover:scale-105"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 600px"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px"
               priority={currentIndex === 0}
               referrerPolicy="no-referrer"
             />
@@ -191,8 +192,9 @@ export function MilestoneCarousel({
                   src={item.url}
                   alt={item.alt}
                   fill
+                  unoptimized={item.url.startsWith("data:")}
                   className="object-cover"
-                  sizes="64px"
+                  sizes="80px"
                   referrerPolicy="no-referrer"
                 />
               </button>

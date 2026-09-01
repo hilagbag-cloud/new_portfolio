@@ -195,8 +195,9 @@ export function MilestoneModal({
                         src={currentGalleryItem.url}
                         alt={currentGalleryItem.alt}
                         fill
+                        unoptimized={currentGalleryItem.url.startsWith("data:")}
                         className="object-cover"
-                        sizes="(max-width: 1024px) 100vw, 850px"
+                        sizes="(max-width: 1024px) 100vw, 1200px"
                         referrerPolicy="no-referrer"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
@@ -233,8 +234,9 @@ export function MilestoneModal({
                           src={item.url}
                           alt={item.alt}
                           fill
+                          unoptimized={item.url.startsWith("data:")}
                           className="object-cover"
-                          sizes="80px"
+                          sizes="100px"
                           referrerPolicy="no-referrer"
                         />
                       </button>

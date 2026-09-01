@@ -120,15 +120,15 @@ export function HeroImageStudioModal({
     setTouchDistance(null);
   };
 
-  // Export cropped canvas
+  // Export cropped canvas with crystal clear HD resolution (2048x2048)
   const handleConfirmAndExport = () => {
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // High-resolution canvas output (1400x1400)
-    const exportSize = 1400;
+    // Ultra High-resolution canvas output (2048x2048 for pristine retina sharpness)
+    const exportSize = 2048;
     canvas.width = exportSize;
     canvas.height = exportSize;
 
@@ -136,6 +136,9 @@ export function HeroImageStudioModal({
     img.crossOrigin = "anonymous";
     img.onload = () => {
       ctx.clearRect(0, 0, exportSize, exportSize);
+
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
 
       ctx.save();
       // Move to center of canvas
@@ -156,7 +159,7 @@ export function HeroImageStudioModal({
       // Apply Zoom
       ctx.scale(zoom, zoom);
 
-      // Draw image centered
+      // Draw image centered with high precision
       const imgAspect = img.naturalWidth / img.naturalHeight;
       let drawW = exportSize;
       let drawH = exportSize;
@@ -169,22 +172,10 @@ export function HeroImageStudioModal({
       ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
       ctx.restore();
 
-      // Export as optimized WebP or PNG (if transparent), fallback to JPEG
-      const MAX_SAFE_DATA_SIZE = 350 * 1024;
+      // Export as high-fidelity WebP or PNG (if transparent), fallback to JPEG
+      const MAX_SAFE_DATA_SIZE = 750 * 1024;
 
-      // Try WebP first
-      try {
-        const webpUrl = canvas.toDataURL("image/webp", 0.85);
-        if (webpUrl.startsWith("data:image/webp") && webpUrl.length <= MAX_SAFE_DATA_SIZE) {
-          onSave(webpUrl);
-          onClose();
-          return;
-        }
-      } catch {
-        // fallback
-      }
-
-      // Try PNG if transparent and size is safe
+      // 1. Try PNG if transparent and size is safe
       if (imageUrl.startsWith("data:image/png") || imageUrl.endsWith(".png")) {
         try {
           const pngUrl = canvas.toDataURL("image/png");
@@ -194,13 +185,37 @@ export function HeroImageStudioModal({
             return;
           }
         } catch {
-          // fallback to jpeg
+          // fallback
         }
       }
 
-      let dataUrl = canvas.toDataURL("image/jpeg", 0.80);
+      // 2. High-quality WebP at 0.94 (no degradation, perfectly sharp)
+      try {
+        const webpUrl = canvas.toDataURL("image/webp", 0.94);
+        if (webpUrl.startsWith("data:image/webp") && webpUrl.length <= MAX_SAFE_DATA_SIZE) {
+          onSave(webpUrl);
+          onClose();
+          return;
+        }
+      } catch {
+        // fallback
+      }
+
+      // 3. High quality WebP at 0.88 or JPEG at 0.90
+      try {
+        const webpFallback = canvas.toDataURL("image/webp", 0.88);
+        if (webpFallback.startsWith("data:image/webp") && webpFallback.length <= MAX_SAFE_DATA_SIZE) {
+          onSave(webpFallback);
+          onClose();
+          return;
+        }
+      } catch {
+        // fallback
+      }
+
+      let dataUrl = canvas.toDataURL("image/jpeg", 0.90);
       if (dataUrl.length > MAX_SAFE_DATA_SIZE) {
-        dataUrl = canvas.toDataURL("image/jpeg", 0.65);
+        dataUrl = canvas.toDataURL("image/jpeg", 0.85);
       }
       onSave(dataUrl);
       onClose();

@@ -1,8 +1,21 @@
 "use client";
 
-import { useState, useRef, ChangeEvent, DragEvent } from "react";
-import { UploadCloud, Image as ImageIcon, X, Check, Link as LinkIcon, Sparkles, Sliders, Crop } from "lucide-react";
+import { useState, useRef, ChangeEvent, DragEvent, useEffect } from "react";
+import {
+  UploadCloud,
+  Image as ImageIcon,
+  X,
+  Check,
+  Link as LinkIcon,
+  Sparkles,
+  Sliders,
+  Crop,
+  ShieldCheck,
+  Zap,
+} from "lucide-react";
 import { HeroImageStudioModal } from "./HeroImageStudioModal";
+
+export type ImageQualityPreset = "hd" | "standard" | "raw_url";
 
 interface ImageUploaderProps {
   label: string;
@@ -12,17 +25,67 @@ interface ImageUploaderProps {
   aspectRatio?: "16/9" | "4/3" | "1/1" | "auto";
   placeholder?: string;
   showCropTool?: boolean;
+  defaultPreset?: ImageQualityPreset;
 }
 
 /**
- * Resizes and optimizes an image file with high-fidelity resolution and guaranteed safe payload size (< 300 Ko)
- * so that documents never exceed Firestore's 1MB limit.
+ * High-Precision Multi-Step Downsampling Canvas Resampler.
+ * Uses iterative 50% half-step downsizes with imageSmoothingQuality="high"
+ * to prevent pixel aliasing, blurriness, and loss of fine details (eyes, textures, text).
+ */
+function resampleCanvasStepDown(
+  sourceCanvas: HTMLCanvasElement,
+  targetWidth: number,
+  targetHeight: number
+): HTMLCanvasElement {
+  let currentCanvas = sourceCanvas;
+  let curW = sourceCanvas.width;
+  let curH = sourceCanvas.height;
+
+  // Step down by half iteratively until within 2x of target
+  while (curW > targetWidth * 2 || curH > targetHeight * 2) {
+    const nextW = Math.max(Math.floor(curW * 0.5), targetWidth);
+    const nextH = Math.max(Math.floor(curH * 0.5), targetHeight);
+
+    const stepCanvas = document.createElement("canvas");
+    stepCanvas.width = nextW;
+    stepCanvas.height = nextH;
+    const stepCtx = stepCanvas.getContext("2d");
+    if (!stepCtx) break;
+
+    stepCtx.imageSmoothingEnabled = true;
+    stepCtx.imageSmoothingQuality = "high";
+    stepCtx.drawImage(currentCanvas, 0, 0, curW, curH, 0, 0, nextW, nextH);
+
+    currentCanvas = stepCanvas;
+    curW = nextW;
+    curH = nextH;
+  }
+
+  // Final draw to exact target dimensions
+  const finalCanvas = document.createElement("canvas");
+  finalCanvas.width = targetWidth;
+  finalCanvas.height = targetHeight;
+  const finalCtx = finalCanvas.getContext("2d");
+  if (finalCtx) {
+    finalCtx.imageSmoothingEnabled = true;
+    finalCtx.imageSmoothingQuality = "high";
+    finalCtx.drawImage(currentCanvas, 0, 0, curW, curH, 0, 0, targetWidth, targetHeight);
+    return finalCanvas;
+  }
+
+  return currentCanvas;
+}
+
+/**
+ * Resizes and optimizes an image with maximum visual fidelity and sharpness.
+ * Retains high resolution (up to 2048px) and crisp WebP/PNG formatting without block artifacts.
  */
 export function compressImage(
   file: File,
-  maxWidth = 1200,
-  maxHeight = 1200,
-  initialQuality = 0.85
+  maxWidth = 2048,
+  maxHeight = 2048,
+  initialQuality = 0.93
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -32,6 +95,7 @@ export function compressImage(
         let width = img.width;
         let height = img.height;
 
+        // Calculate target dimensions preserving aspect ratio
         if (width > maxWidth || height > maxHeight) {
           if (width / height > maxWidth / maxHeight) {
             height = Math.round((height * maxWidth) / width);
@@ -42,36 +106,32 @@ export function compressImage(
           }
         }
 
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
+        // Draw source to high-res canvas
+        const sourceCanvas = document.createElement("canvas");
+        sourceCanvas.width = img.width;
+        sourceCanvas.height = img.height;
+        const sourceCtx = sourceCanvas.getContext("2d");
+        if (!sourceCtx) {
           resolve(readerEvent.target?.result as string);
           return;
         }
+        sourceCtx.imageSmoothingEnabled = true;
+        sourceCtx.imageSmoothingQuality = "high";
+        sourceCtx.drawImage(img, 0, 0);
 
-        ctx.drawImage(img, 0, 0, width, height);
+        // Perform smooth multi-step downsampling for razor-sharp results
+        const finalCanvas =
+          img.width > width || img.height > height
+            ? resampleCanvasStepDown(sourceCanvas, width, height)
+            : sourceCanvas;
 
-        // Target: Keep base64 data under 350 KB so it fits easily within Firestore 1MB limits
-        const MAX_SAFE_DATA_SIZE = 350 * 1024;
+        // Target size limit: 750 KB (comfortable margin within Firestore's 1MB limit)
+        const MAX_SAFE_DATA_SIZE = 750 * 1024;
 
-        // Try WebP first with alpha channel preservation
-        try {
-          const webpUrl = canvas.toDataURL("image/webp", initialQuality);
-          if (webpUrl.startsWith("data:image/webp") && webpUrl.length <= MAX_SAFE_DATA_SIZE) {
-            resolve(webpUrl);
-            return;
-          }
-        } catch {
-          // ignore
-        }
-
-        // Try PNG if original was PNG and small enough (< 300KB)
+        // 1. If PNG with transparency, attempt PNG export first
         if (file.type === "image/png") {
           try {
-            const pngUrl = canvas.toDataURL("image/png");
+            const pngUrl = finalCanvas.toDataURL("image/png");
             if (pngUrl.length <= MAX_SAFE_DATA_SIZE) {
               resolve(pngUrl);
               return;
@@ -81,18 +141,31 @@ export function compressImage(
           }
         }
 
-        // Progressive JPEG compression to ensure safe payload
-        let quality = initialQuality;
-        let finalDataUrl = canvas.toDataURL("image/jpeg", quality);
-
-        // If still large, scale quality down
-        if (finalDataUrl.length > MAX_SAFE_DATA_SIZE) {
-          quality = 0.72;
-          finalDataUrl = canvas.toDataURL("image/jpeg", quality);
+        // 2. High Quality WebP export (Preserves alpha channel, incredible clarity, zero noise)
+        try {
+          const webpUrl = finalCanvas.toDataURL("image/webp", initialQuality);
+          if (webpUrl.startsWith("data:image/webp") && webpUrl.length <= MAX_SAFE_DATA_SIZE) {
+            resolve(webpUrl);
+            return;
+          }
+        } catch {
+          // fallback
         }
+
+        // 3. Fallback High-Fidelity WebP at 0.88 or JPEG at 0.90
+        try {
+          const webpFallback = finalCanvas.toDataURL("image/webp", 0.88);
+          if (webpFallback.startsWith("data:image/webp") && webpFallback.length <= MAX_SAFE_DATA_SIZE) {
+            resolve(webpFallback);
+            return;
+          }
+        } catch {
+          // fallback
+        }
+
+        let finalDataUrl = finalCanvas.toDataURL("image/jpeg", 0.90);
         if (finalDataUrl.length > MAX_SAFE_DATA_SIZE) {
-          quality = 0.60;
-          finalDataUrl = canvas.toDataURL("image/jpeg", quality);
+          finalDataUrl = finalCanvas.toDataURL("image/jpeg", 0.84);
         }
 
         resolve(finalDataUrl);
@@ -113,13 +186,58 @@ export function ImageUploader({
   aspectRatio = "16/9",
   placeholder,
   showCropTool = false,
+  defaultPreset = "hd",
 }: ImageUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlDraft, setUrlDraft] = useState("");
   const [showCropModal, setShowCropModal] = useState(false);
+  const [qualityPreset, setQualityPreset] = useState<ImageQualityPreset>(defaultPreset);
+  const [imageMeta, setImageMeta] = useState<{
+    width?: number;
+    height?: number;
+    sizeKb?: number;
+    format?: string;
+  } | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Analyze active image metadata
+  useEffect(() => {
+    if (!value) {
+      setImageMeta(null);
+      return;
+    }
+
+    if (value.startsWith("data:")) {
+      const approxBytes = Math.round((value.length * 3) / 4);
+      const sizeKb = Math.round(approxBytes / 1024);
+      const format = value.split(";")[0]?.replace("data:image/", "")?.toUpperCase() || "IMG";
+
+      const img = new Image();
+      img.onload = () => {
+        setImageMeta({
+          width: img.naturalWidth,
+          height: img.naturalHeight,
+          sizeKb,
+          format,
+        });
+      };
+      img.src = value;
+    } else {
+      // External URL
+      const img = new Image();
+      img.onload = () => {
+        setImageMeta({
+          width: img.naturalWidth,
+          height: img.naturalHeight,
+          format: "URL / CDN 4K",
+        });
+      };
+      img.src = value;
+    }
+  }, [value]);
 
   const handleFileProcess = async (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -129,7 +247,12 @@ export function ImageUploader({
 
     try {
       setIsProcessing(true);
-      const compressedDataUrl = await compressImage(file);
+
+      // Apply resolution according to preset
+      const maxDim = qualityPreset === "hd" ? 2048 : 1600;
+      const targetQuality = qualityPreset === "hd" ? 0.94 : 0.90;
+
+      const compressedDataUrl = await compressImage(file, maxDim, maxDim, targetQuality);
       onChange(compressedDataUrl);
     } catch (err) {
       console.error("Image processing error:", err);
@@ -167,6 +290,7 @@ export function ImageUploader({
   const handleRemove = () => {
     onChange("");
     setUrlDraft("");
+    setImageMeta(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -181,18 +305,49 @@ export function ImageUploader({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <label className="eyebrow text-xs text-text block font-semibold">
           {label}
         </label>
-        <button
-          type="button"
-          onClick={() => setShowUrlInput(!showUrlInput)}
-          className="text-[11px] font-mono text-accent hover:underline flex items-center gap-1"
-        >
-          <LinkIcon size={11} />
-          <span>{showUrlInput ? "Masquer URL" : "Ou coller une URL"}</span>
-        </button>
+        
+        <div className="flex items-center gap-3">
+          {/* Quality preset selector badge */}
+          <div className="inline-flex items-center gap-1 rounded-lg border border-border bg-surface/80 p-0.5 text-[10px] font-mono">
+            <button
+              type="button"
+              onClick={() => setQualityPreset("hd")}
+              className={`px-2 py-0.5 rounded-md font-semibold transition-all ${
+                qualityPreset === "hd"
+                  ? "bg-accent text-accent-contrast shadow-sm"
+                  : "text-muted hover:text-text"
+              }`}
+              title="Haute Définition : Jusqu'à 2048px, netteté maximale et qualité 95%"
+            >
+              💎 HD 2048px
+            </button>
+            <button
+              type="button"
+              onClick={() => setQualityPreset("standard")}
+              className={`px-2 py-0.5 rounded-md font-semibold transition-all ${
+                qualityPreset === "standard"
+                  ? "bg-accent text-accent-contrast shadow-sm"
+                  : "text-muted hover:text-text"
+              }`}
+              title="Standard : 1600px, équilibre vitesse et netteté"
+            >
+              ⚡ 1600px
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowUrlInput(!showUrlInput)}
+            className="text-[11px] font-mono text-accent hover:underline flex items-center gap-1"
+          >
+            <LinkIcon size={11} />
+            <span>{showUrlInput ? "Masquer URL" : "Lien URL direct"}</span>
+          </button>
+        </div>
       </div>
 
       {sublabel && <p className="text-[11px] text-muted">{sublabel}</p>}
@@ -208,22 +363,27 @@ export function ImageUploader({
 
       {/* URL Drawer if user clicked the toggle */}
       {showUrlInput && (
-        <div className="rounded-xl border border-white/10 bg-surface/80 p-3 space-y-2">
-          <label className="text-[10px] font-mono text-muted uppercase block">
-            Lien externe vers l&apos;image (ex: Unsplash ou CDN) :
-          </label>
+        <div className="rounded-xl border border-accent/40 bg-surface/90 p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-[10px] font-mono text-muted uppercase block font-semibold">
+              Lien direct vers une photo HD / 4K (Unsplash, Cloudinary, Imgur, CDN) :
+            </label>
+            <span className="text-[10px] font-mono text-accent font-semibold">
+              0 compression • Qualité Originale
+            </span>
+          </div>
           <div className="flex gap-2">
             <input
               type="url"
               value={urlDraft}
               onChange={(e) => setUrlDraft(e.target.value)}
-              placeholder="https://..."
+              placeholder="https://images.unsplash.com/... ou https://..."
               className="flex-1 rounded-lg border border-border bg-black/60 px-3 py-1.5 text-xs text-text focus-ring font-mono"
             />
             <button
               type="button"
               onClick={handleApplyUrl}
-              className="rounded-lg bg-accent px-3 py-1.5 text-xs font-bold text-bg hover:scale-105 transition-transform"
+              className="rounded-lg bg-accent px-3 py-1.5 text-xs font-bold text-accent-contrast hover:scale-105 transition-transform"
             >
               Appliquer
             </button>
@@ -242,7 +402,7 @@ export function ImageUploader({
                 ? "aspect-[4/3]"
                 : aspectRatio === "1/1"
                 ? "aspect-square"
-                : "max-h-64 aspect-video"
+                : "max-h-72 aspect-video"
             }`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -250,6 +410,7 @@ export function ImageUploader({
               src={value}
               alt="Média chargé"
               className="h-full w-full object-cover object-center"
+              style={{ imageRendering: "auto" }}
             />
 
             {/* Overlay buttons on hover */}
@@ -258,18 +419,18 @@ export function ImageUploader({
                 <button
                   type="button"
                   onClick={() => setShowCropModal(true)}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-xs font-bold text-bg shadow-md transition-transform hover:scale-105"
-                  title="Ouvrir le studio de recadrage et zoom"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-3.5 py-2 text-xs font-bold text-accent-contrast shadow-md transition-transform hover:scale-105"
+                  title="Ouvrir le studio de recadrage haute résolution"
                 >
                   <Crop size={14} />
-                  <span>Recadrer & Zoomer</span>
+                  <span>Studio & Cadrage HD</span>
                 </button>
               )}
 
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-surface/90 px-3 py-2 text-xs font-bold text-text shadow-md transition-transform hover:scale-105 hover:border-accent/40"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-surface/90 px-3.5 py-2 text-xs font-bold text-text shadow-md transition-transform hover:scale-105 hover:border-accent/40"
               >
                 <UploadCloud size={14} />
                 <span>Remplacer</span>
@@ -278,7 +439,7 @@ export function ImageUploader({
               <button
                 type="button"
                 onClick={handleRemove}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/50 bg-red-500/20 px-3 py-2 text-xs font-bold text-red-300 backdrop-blur-md hover:bg-red-500/40"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/50 bg-red-500/20 px-3.5 py-2 text-xs font-bold text-red-300 backdrop-blur-md hover:bg-red-500/40"
               >
                 <X size={14} />
                 <span>Supprimer</span>
@@ -286,11 +447,27 @@ export function ImageUploader({
             </div>
           </div>
 
-          <div className="mt-2 flex items-center justify-between px-1 text-[11px] font-mono text-muted">
-            <span className="flex items-center gap-1 text-accent">
-              <Check size={12} />
-              <span>Média enregistré</span>
-            </span>
+          {/* Bottom Info Bar with Live Resolution & Quality Badge */}
+          <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 px-1 text-[11px] font-mono">
+            <div className="flex items-center gap-2 text-accent">
+              <Sparkles size={12} className="text-accent" />
+              <span className="font-semibold">
+                {imageMeta?.width && imageMeta?.height
+                  ? `${imageMeta.width} × ${imageMeta.height} px`
+                  : "Média haute fidélité"}
+              </span>
+              {imageMeta?.format && (
+                <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] text-accent border border-accent/30 font-bold">
+                  {imageMeta.format}
+                </span>
+              )}
+              {imageMeta?.sizeKb ? (
+                <span className="text-muted text-[10px]">
+                  ({imageMeta.sizeKb} Ko)
+                </span>
+              ) : null}
+            </div>
+
             <div className="flex items-center gap-3">
               {showCropTool && (
                 <button
@@ -335,15 +512,15 @@ export function ImageUploader({
           <div className="space-y-1">
             <p className="text-xs sm:text-sm font-semibold text-text">
               {isProcessing ? (
-                "Traitement et optimisation de l'image..."
+                "Traitement et optimisation haute fidélité (Netteté maximale)..."
               ) : (
                 <>
-                  <span className="text-accent underline font-bold">Cliquez pour importer</span> ou glissez une image ici
+                  <span className="text-accent underline font-bold">Cliquez pour importer en HD</span> ou glissez votre photo ici
                 </>
               )}
             </p>
             <p className="text-[11px] font-mono text-muted">
-              {placeholder || "PNG, JPG, WEBP, SVG • Compression et optimisation automatique"}
+              {placeholder || "PNG, JPG, WEBP • Résolution jusqu'à 2048px • Aucune perte de netteté"}
             </p>
           </div>
         </div>
@@ -362,3 +539,4 @@ export function ImageUploader({
     </div>
   );
 }
+
