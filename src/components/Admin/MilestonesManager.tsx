@@ -33,11 +33,14 @@ import {
 import { ImageUploader } from "./ImageUploader";
 import { seedInitialCmsData } from "@/lib/cms-seed";
 import { ConfirmWriteModal, type PendingFirestoreWrite } from "./ConfirmWriteModal";
+import { FirestoreErrorModal } from "./FirestoreErrorModal";
 import {
   sanitizeForFirestore,
   saveLocalDraft,
   loadLocalDraft,
   getFirestoreErrorMessage,
+  parseFirestoreError,
+  type DetailedFirestoreErrorInfo,
 } from "@/lib/firestore-utils";
 
 function mergeMilestones(firestoreList: Milestone[]): Milestone[] {
@@ -84,6 +87,10 @@ export function MilestonesManager({
   // Manual Confirmation State
   const [pendingWrite, setPendingWrite] = useState<PendingFirestoreWrite | null>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+
+  // Detailed Error Modal State
+  const [errorModalInfo, setErrorModalInfo] = useState<DetailedFirestoreErrorInfo | null>(null);
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
 
   useEffect(() => {
     const unsub = onSnapshot(
@@ -142,8 +149,12 @@ export function MilestonesManager({
           setTimeout(() => setSaveAllSuccess(false), 4000);
         } catch (err: unknown) {
           console.error("Error saving all milestones:", err);
-          const msg = getFirestoreErrorMessage(err);
-          alert(`Parcours conservé dans votre navigateur (0 perte).\n\nNote Firestore : ${msg}`);
+          const detailedErr = parseFirestoreError(err, {
+            collection: "milestones",
+            payload: cleanBatchPayload,
+          });
+          setErrorModalInfo(detailedErr);
+          setIsErrorModalOpen(true);
         } finally {
           setLoading(false);
         }
@@ -284,8 +295,13 @@ export function MilestonesManager({
           setEditingMilestone(null);
         } catch (err: unknown) {
           console.error("Error saving milestone:", err);
-          const msg = getFirestoreErrorMessage(err);
-          alert(`Données du parcours conservées en mémoire.\n\nNote Firestore : ${msg}`);
+          const detailedErr = parseFirestoreError(err, {
+            collection: "milestones",
+            docId: mId,
+            payload: clean,
+          });
+          setErrorModalInfo(detailedErr);
+          setIsErrorModalOpen(true);
         } finally {
           setLoading(false);
         }
@@ -855,6 +871,13 @@ export function MilestonesManager({
           setPendingWrite(null);
         }}
         pendingWrite={pendingWrite}
+      />
+
+      {/* Detailed Firestore Error Modal */}
+      <FirestoreErrorModal
+        isOpen={isErrorModalOpen}
+        errorInfo={errorModalInfo}
+        onClose={() => setIsErrorModalOpen(false)}
       />
     </div>
   );

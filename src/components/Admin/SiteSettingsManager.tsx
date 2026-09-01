@@ -8,6 +8,8 @@ import {
   saveLocalDraft,
   loadLocalDraft,
   getFirestoreErrorMessage,
+  parseFirestoreError,
+  type DetailedFirestoreErrorInfo,
 } from "@/lib/firestore-utils";
 import {
   defaultSiteMetadata,
@@ -59,6 +61,7 @@ import { seedInitialCmsData } from "@/lib/cms-seed";
 import { ImageUploader } from "./ImageUploader";
 import { HeroImageStudioModal } from "./HeroImageStudioModal";
 import { ConfirmWriteModal, type PendingFirestoreWrite } from "./ConfirmWriteModal";
+import { FirestoreErrorModal } from "./FirestoreErrorModal";
 import { ThemeToggle } from "@/components/Theme/ThemeToggle";
 
 export function SiteSettingsManager({
@@ -300,6 +303,10 @@ export function SiteSettingsManager({
   // Manual Confirmation State
   const [pendingWrite, setPendingWrite] = useState<PendingFirestoreWrite | null>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+
+  // Detailed Error Modal State
+  const [errorModalInfo, setErrorModalInfo] = useState<DetailedFirestoreErrorInfo | null>(null);
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
 
   useEffect(() => {
     async function loadConfig() {
@@ -603,11 +610,14 @@ export function SiteSettingsManager({
           setTimeout(() => setSaved(false), 3500);
         } catch (err: unknown) {
           console.error("Error saving site config to Firestore:", err);
-          const errorDetail = getFirestoreErrorMessage(err);
-          setSaveError(errorDetail);
-          alert(
-            `Progression sauvegardée localement dans votre navigateur.\n\nNote Firestore : ${errorDetail}`
-          );
+          const detailedErr = parseFirestoreError(err, {
+            collection: "siteConfig",
+            docId: "global",
+            payload: sanitizedPayload,
+          });
+          setErrorModalInfo(detailedErr);
+          setIsErrorModalOpen(true);
+          setSaveError(detailedErr.title);
         } finally {
           setLoading(false);
         }
@@ -961,42 +971,6 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
                     onChange={(e) => setCanonicalUrl(e.target.value)}
                     placeholder="https://hilarus.dev"
                     className="w-full rounded-xl border border-border bg-surface px-4 py-2 text-sm text-text focus-ring"
-                  />
-                </div>
-              </div>
-
-              {/* Google Verification Token & Bing */}
-              <div className="rounded-xl border border-accent/30 bg-accent/5 p-4 space-y-3">
-                <div className="flex items-center gap-2 text-xs font-semibold text-text">
-                  <Shield size={14} className="text-accent" />
-                  <span>Vérification de Propriété Google Search Console</span>
-                </div>
-                <div>
-                  <label className="eyebrow mb-1 block text-xs">
-                    Code de validation Google (google-site-verification)
-                  </label>
-                  <input
-                    type="text"
-                    value={googleSiteVerification}
-                    onChange={(e) => setGoogleSiteVerification(e.target.value)}
-                    placeholder="ex: AbCdEfGhIjKlMnOpQrStUvWxYz1234567890"
-                    className="w-full rounded-xl border border-border bg-surface px-4 py-2 text-xs font-mono text-text focus-ring"
-                  />
-                  <p className="mt-1 text-[11px] text-muted">
-                    Collez le code HTML / token fourni par Google Search Console pour certifier instantanément votre domaine.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="eyebrow mb-1 block text-xs">
-                    Validation Bing Webmaster (msvalidate.01 - optionnel)
-                  </label>
-                  <input
-                    type="text"
-                    value={bingSiteVerification}
-                    onChange={(e) => setBingSiteVerification(e.target.value)}
-                    placeholder="ex: 1234567890ABCDEF1234567890ABCDEF"
-                    className="w-full rounded-xl border border-border bg-surface px-4 py-2 text-xs font-mono text-text focus-ring"
                   />
                 </div>
               </div>
@@ -2682,6 +2656,14 @@ NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID=${resolvedFirebaseConfig.firestoreDat
           setPendingWrite(null);
         }}
         pendingWrite={pendingWrite}
+      />
+
+      {/* Detailed Firestore Diagnostic & Error Modal */}
+      <FirestoreErrorModal
+        isOpen={isErrorModalOpen}
+        errorInfo={errorModalInfo}
+        onClose={() => setIsErrorModalOpen(false)}
+        onRetry={() => handleSave()}
       />
     </div>
   );

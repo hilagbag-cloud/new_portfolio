@@ -11,7 +11,9 @@ import {
   FileCode2,
   Sparkles,
   RefreshCw,
+  HardDrive,
 } from "lucide-react";
+import { calculatePayloadSizeBytes, formatBytes } from "@/lib/firestore-utils";
 
 export interface PendingFirestoreWrite {
   title: string;
@@ -61,6 +63,11 @@ export function ConfirmWriteModal({
 
   const isDelete = pendingWrite.actionType === "deleteDoc";
   const jsonPreview = JSON.stringify(pendingWrite.payload, null, 2);
+  const payloadBytes = calculatePayloadSizeBytes(pendingWrite.payload);
+  const formattedSize = formatBytes(payloadBytes);
+  const isSizeOverLimit = payloadBytes > 1024 * 1024;
+  const isSizeWarning = payloadBytes > 700 * 1024;
+
   const keysCount =
     typeof pendingWrite.payload === "object" && !Array.isArray(pendingWrite.payload)
       ? Object.keys(pendingWrite.payload || {}).length
@@ -129,6 +136,45 @@ export function ConfirmWriteModal({
                   Nettoyage des champs vides appliqué :
                 </span>{" "}
                 {keysCount} champ(s) et propriétés non vides seront enregistrés. Les champs laissés vides ont été automatiquement retirés du document pour garder votre base saine.
+              </div>
+            </div>
+          )}
+
+          {/* Payload weight indicator */}
+          {!isDelete && (
+            <div className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/60 px-4 py-2.5 text-xs">
+              <span className="flex items-center gap-2 text-muted">
+                <HardDrive size={14} className="text-accent" />
+                <span>Poids estimé du payload :</span>
+              </span>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`font-mono font-bold ${
+                    isSizeOverLimit
+                      ? "text-red-400"
+                      : isSizeWarning
+                      ? "text-amber-400"
+                      : "text-emerald-300"
+                  }`}
+                >
+                  {formattedSize}
+                </span>
+                <span className="text-[10px] text-muted font-mono">/ Max 1.00 Mo</span>
+                <span
+                  className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold border ${
+                    isSizeOverLimit
+                      ? "bg-red-500/20 text-red-300 border-red-500/40"
+                      : isSizeWarning
+                      ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                      : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                  }`}
+                >
+                  {isSizeOverLimit
+                    ? "Limite dépassée"
+                    : isSizeWarning
+                    ? "Attention"
+                    : "Conforme"}
+                </span>
               </div>
             </div>
           )}

@@ -15,9 +15,15 @@ interface ImageUploaderProps {
 }
 
 /**
- * Resizes and optimizes an image file with high-fidelity resolution and PNG transparency support
+ * Resizes and optimizes an image file with high-fidelity resolution and guaranteed safe payload size (< 300 Ko)
+ * so that documents never exceed Firestore's 1MB limit.
  */
-function compressImage(file: File, maxWidth = 2560, maxHeight = 1920, quality = 0.94): Promise<string> {
+export function compressImage(
+  file: File,
+  maxWidth = 1200,
+  maxHeight = 1200,
+  initialQuality = 0.85
+): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (readerEvent) => {
@@ -48,11 +54,25 @@ function compressImage(file: File, maxWidth = 2560, maxHeight = 1920, quality = 
 
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Keep PNG transparency if file is PNG or transparent
+        // Target: Keep base64 data under 350 KB so it fits easily within Firestore 1MB limits
+        const MAX_SAFE_DATA_SIZE = 350 * 1024;
+
+        // Try WebP first with alpha channel preservation
+        try {
+          const webpUrl = canvas.toDataURL("image/webp", initialQuality);
+          if (webpUrl.startsWith("data:image/webp") && webpUrl.length <= MAX_SAFE_DATA_SIZE) {
+            resolve(webpUrl);
+            return;
+          }
+        } catch {
+          // ignore
+        }
+
+        // Try PNG if original was PNG and small enough (< 300KB)
         if (file.type === "image/png") {
           try {
             const pngUrl = canvas.toDataURL("image/png");
-            if (pngUrl.length < 4.5 * 1024 * 1024) {
+            if (pngUrl.length <= MAX_SAFE_DATA_SIZE) {
               resolve(pngUrl);
               return;
             }
@@ -61,18 +81,21 @@ function compressImage(file: File, maxWidth = 2560, maxHeight = 1920, quality = 
           }
         }
 
-        // Prefer image/webp if supported, fallback to jpeg
-        try {
-          const webpUrl = canvas.toDataURL("image/webp", quality);
-          if (webpUrl.startsWith("data:image/webp")) {
-            resolve(webpUrl);
-            return;
-          }
-        } catch {
-          // ignore
+        // Progressive JPEG compression to ensure safe payload
+        let quality = initialQuality;
+        let finalDataUrl = canvas.toDataURL("image/jpeg", quality);
+
+        // If still large, scale quality down
+        if (finalDataUrl.length > MAX_SAFE_DATA_SIZE) {
+          quality = 0.72;
+          finalDataUrl = canvas.toDataURL("image/jpeg", quality);
+        }
+        if (finalDataUrl.length > MAX_SAFE_DATA_SIZE) {
+          quality = 0.60;
+          finalDataUrl = canvas.toDataURL("image/jpeg", quality);
         }
 
-        resolve(canvas.toDataURL("image/jpeg", quality));
+        resolve(finalDataUrl);
       };
       img.onerror = () => reject(new Error("Impossible de lire l'image"));
       img.src = readerEvent.target?.result as string;

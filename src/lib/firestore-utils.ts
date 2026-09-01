@@ -97,6 +97,123 @@ export function clearLocalDraft(key: string): void {
   }
 }
 
+export interface DetailedFirestoreErrorInfo {
+  code: string;
+  title: string;
+  explanation: string;
+  solutions: string[];
+  technicalMessage: string;
+  payloadSizeFormatted: string;
+  payloadSizeBytes: number;
+  isPayloadTooLarge: boolean;
+  targetPath?: string;
+  timestamp: string;
+}
+
+export function calculatePayloadSizeBytes(payload: unknown): number {
+  try {
+    const jsonStr = JSON.stringify(payload);
+    if (!jsonStr) return 0;
+    // Calculate UTF-8 byte length
+    return new TextEncoder().encode(jsonStr).length;
+  } catch {
+    return 0;
+  }
+}
+
+export function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 Ko";
+  if (bytes < 1024) return `${bytes} o`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} Mo`;
+}
+
+export function parseFirestoreError(
+  err: unknown,
+  context?: {
+    collection?: string;
+    docId?: string;
+    payload?: unknown;
+  }
+): DetailedFirestoreErrorInfo {
+  const errorObj = (err && typeof err === "object" ? err : {}) as {
+    code?: string;
+    message?: string;
+    name?: string;
+    stack?: string;
+  };
+
+  const rawCode = errorObj.code || "unknown-error";
+  const rawMessage = errorObj.message || (typeof err === "string" ? err : "Erreur inconnue");
+  const payloadBytes = context?.payload ? calculatePayloadSizeBytes(context.payload) : 0;
+  const isTooLarge = payloadBytes > 1024 * 1024; // 1 MB Firestore limit
+
+  let title = "Erreur lors de la communication avec Firestore";
+  let explanation =
+    "Une erreur est survenue lors de l'enregistrement de vos données sur votre base Firebase.";
+  const solutions: string[] = [
+    "Vos modifications sont sauvegardées dans la mémoire locale de votre navigateur (0 perte).",
+  ];
+
+  if (isTooLarge || rawMessage.includes("exceeds maximum size") || rawCode === "resource-exhausted") {
+    title = "Taille du document supérieure à la limite Firestore (1 Mo)";
+    explanation = `Le document que vous tentez d'enregistrer pèse ${formatBytes(
+      payloadBytes
+    )}, ce qui dépasse la limite maximale autorisée par Firestore (1,048,576 octets). Cela est souvent dû à une photo en très haute résolution intégrée en base64.`;
+    solutions.push(
+      "Recompressez ou recadrez la photo via l'outil d'optimisation intégré.",
+      "Utilisez une URL externe (ex: Unsplash ou CDN) au lieu d'une image brute volumineuse.",
+      "Vérifiez que vous n'avez pas accumulé trop de photos non compressées dans le même document."
+    );
+  } else if (rawCode === "permission-denied" || rawMessage.includes("insufficient permissions")) {
+    title = "Permission Firestore Refusée (Droits d'administration requis)";
+    explanation =
+      "Firestore a rejeté l'écriture car votre session administrateur est absente ou a expiré, ou les règles de sécurité Firestore requièrent une reconnexion.";
+    solutions.push(
+      "Déconnectez-vous et reconnectez-vous avec votre adresse Google autorisée (ex: hilaruskazak@gmail.com).",
+      "Vérifiez que votre connexion Internet est active.",
+      "Les modifications en cours sont conservées localement et peuvent être renvoyées après reconnexion."
+    );
+  } else if (rawCode === "unavailable" || rawMessage.includes("client is offline") || rawMessage.includes("network")) {
+    title = "Serveur Firestore Inaccessible (Réseau déconnecté)";
+    explanation =
+      "Le client Firestore n'a pas pu contacter les serveurs Google Firebase. Vos données restent disponibles en local.";
+    solutions.push(
+      "Vérifiez votre connexion Internet.",
+      "Patientez quelques instants avant de cliquer à nouveau sur Valider l'écriture."
+    );
+  } else if (rawCode === "invalid-argument") {
+    title = "Argument ou Format de Donnée Invalide";
+    explanation =
+      "Un champ contient une valeur non acceptée par Firestore (clé vide, type non supporté ou structure imbriquée corrompue).";
+    solutions.push(
+      "Le nettoyeur de champs a automatiquement purgé les entrées vides.",
+      "Vérifiez les formats d'URL (http/https) et les adresses emails renseignées."
+    );
+  } else if (rawCode === "unauthenticated") {
+    title = "Session Utilisateur Expirée";
+    explanation = "Votre jeton d'authentification n'est plus valide.";
+    solutions.push("Veuillez vous reconnecter à l'espace d'administration.");
+  }
+
+  const targetPath = context?.collection
+    ? `${context.collection}${context.docId ? `/${context.docId}` : ""}`
+    : undefined;
+
+  return {
+    code: rawCode,
+    title,
+    explanation,
+    solutions,
+    technicalMessage: rawMessage,
+    payloadSizeFormatted: formatBytes(payloadBytes),
+    payloadSizeBytes: payloadBytes,
+    isPayloadTooLarge: isTooLarge,
+    targetPath,
+    timestamp: new Date().toLocaleTimeString("fr-FR"),
+  };
+}
+
 export function getFirestoreErrorMessage(err: unknown): string {
   if (!err) return "Erreur inconnue";
   if (typeof err === "string") return err;

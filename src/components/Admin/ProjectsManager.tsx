@@ -44,11 +44,14 @@ import {
 import { ImageUploader } from "./ImageUploader";
 import { seedInitialCmsData } from "@/lib/cms-seed";
 import { ConfirmWriteModal, type PendingFirestoreWrite } from "./ConfirmWriteModal";
+import { FirestoreErrorModal } from "./FirestoreErrorModal";
 import {
   sanitizeForFirestore,
   saveLocalDraft,
   loadLocalDraft,
   getFirestoreErrorMessage,
+  parseFirestoreError,
+  type DetailedFirestoreErrorInfo,
 } from "@/lib/firestore-utils";
 
 function mergeProjects(firestoreList: Project[]): Project[] {
@@ -108,6 +111,10 @@ export function ProjectsManager({
   // Manual Confirmation State
   const [pendingWrite, setPendingWrite] = useState<PendingFirestoreWrite | null>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+
+  // Detailed Error Modal State
+  const [errorModalInfo, setErrorModalInfo] = useState<DetailedFirestoreErrorInfo | null>(null);
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
 
   useEffect(() => {
     const unsub = onSnapshot(
@@ -170,8 +177,12 @@ export function ProjectsManager({
           setTimeout(() => setSaveAllSuccess(false), 4000);
         } catch (err: unknown) {
           console.error("Error saving all projects to Firestore:", err);
-          const msg = getFirestoreErrorMessage(err);
-          alert(`Vos projets sont enregistrés en mémoire locale (0 perte).\n\nNote Firestore : ${msg}`);
+          const detailedErr = parseFirestoreError(err, {
+            collection: "projects",
+            payload: cleanBatchPayload,
+          });
+          setErrorModalInfo(detailedErr);
+          setIsErrorModalOpen(true);
         } finally {
           setLoading(false);
         }
@@ -444,8 +455,13 @@ export function ProjectsManager({
           setEditingProject(null);
         } catch (err: unknown) {
           console.error("Error saving project:", err);
-          const msg = getFirestoreErrorMessage(err);
-          alert(`Données du projet conservées dans votre session.\n\nNote Firestore : ${msg}`);
+          const detailedErr = parseFirestoreError(err, {
+            collection: "projects",
+            docId: projId,
+            payload: cleanPayload,
+          });
+          setErrorModalInfo(detailedErr);
+          setIsErrorModalOpen(true);
         } finally {
           setLoading(false);
         }
@@ -1251,6 +1267,13 @@ export function ProjectsManager({
           setPendingWrite(null);
         }}
         pendingWrite={pendingWrite}
+      />
+
+      {/* Detailed Firestore Error Modal */}
+      <FirestoreErrorModal
+        isOpen={isErrorModalOpen}
+        errorInfo={errorModalInfo}
+        onClose={() => setIsErrorModalOpen(false)}
       />
     </div>
   );

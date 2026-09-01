@@ -170,23 +170,13 @@ export function HeroImageStudioModal({
       ctx.restore();
 
       // Export as optimized WebP or PNG (if transparent), fallback to JPEG
-      if (imageUrl.startsWith("data:image/png") || imageUrl.endsWith(".png")) {
-        try {
-          const pngUrl = canvas.toDataURL("image/png");
-          if (pngUrl.length < 4.5 * 1024 * 1024) {
-            onSave(pngUrl);
-            onClose();
-            return;
-          }
-        } catch {
-          // fallback to webp
-        }
-      }
+      const MAX_SAFE_DATA_SIZE = 350 * 1024;
 
+      // Try WebP first
       try {
-        const dataUrl = canvas.toDataURL("image/webp", 0.95);
-        if (dataUrl.startsWith("data:image/webp")) {
-          onSave(dataUrl);
+        const webpUrl = canvas.toDataURL("image/webp", 0.85);
+        if (webpUrl.startsWith("data:image/webp") && webpUrl.length <= MAX_SAFE_DATA_SIZE) {
+          onSave(webpUrl);
           onClose();
           return;
         }
@@ -194,7 +184,24 @@ export function HeroImageStudioModal({
         // fallback
       }
 
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+      // Try PNG if transparent and size is safe
+      if (imageUrl.startsWith("data:image/png") || imageUrl.endsWith(".png")) {
+        try {
+          const pngUrl = canvas.toDataURL("image/png");
+          if (pngUrl.length <= MAX_SAFE_DATA_SIZE) {
+            onSave(pngUrl);
+            onClose();
+            return;
+          }
+        } catch {
+          // fallback to jpeg
+        }
+      }
+
+      let dataUrl = canvas.toDataURL("image/jpeg", 0.80);
+      if (dataUrl.length > MAX_SAFE_DATA_SIZE) {
+        dataUrl = canvas.toDataURL("image/jpeg", 0.65);
+      }
       onSave(dataUrl);
       onClose();
     };
