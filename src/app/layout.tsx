@@ -8,6 +8,7 @@ import {
   buildNextMetadata,
   buildJsonLdSchema,
 } from "@/lib/cms-meta";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const suezOne = Suez_One({
@@ -78,6 +79,7 @@ export default async function RootLayout({
             {children}
           </ThemeProvider>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
