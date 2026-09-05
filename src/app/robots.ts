@@ -9,7 +9,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin", "/admin/*", "/api/*"],
+        disallow: ["/admin", "/admin/*", "/api/*", "/.env*", "/.git*"],
       },
       {
         userAgent: [
@@ -27,6 +27,26 @@ export default function robots(): MetadataRoute.Robots {
         ],
         allow: "/",
         disallow: ["/admin", "/admin/*", "/api/*"],
+      },
+      {
+        // Block intrusive scrapers, security scanners & terminal bots
+        userAgent: [
+          "python-requests",
+          "python-httpx",
+          "aiohttp",
+          "Wget",
+          "curl",
+          "AhrefsBot",
+          "SemrushBot",
+          "AgentTrustBot",
+          "siteradar",
+          "DefaultsExposed",
+          "Lwspanel",
+          "sqlmap",
+          "nikto",
+          "nmap",
+        ],
+        disallow: ["/"],
       },
     ],
     sitemap: `${cleanBaseUrl}/sitemap.xml`,

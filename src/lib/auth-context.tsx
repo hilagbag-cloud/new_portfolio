@@ -11,11 +11,21 @@ import {
 } from "firebase/auth";
 import { auth } from "./firebase";
 
-export const ALLOWED_ADMIN_EMAILS = [
-  "hilagbag@gmail.com",
-  "hilaruskazak@gmail.com",
-  "hello@hilarus.dev",
-];
+// Allowed administrator accounts (configurable via environment variable or default admin list)
+const envAdminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAILS
+  ? process.env.NEXT_PUBLIC_ADMIN_EMAILS.split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean)
+  : [];
+
+export const ALLOWED_ADMIN_EMAILS: string[] = Array.from(
+  new Set([
+    ...envAdminEmails,
+    "hilaruskazak@gmail.com",
+    "hilagbag@gmail.com",
+    "hello@hilarus.dev",
+  ])
+);
 
 interface AuthContextType {
   user: User | null;

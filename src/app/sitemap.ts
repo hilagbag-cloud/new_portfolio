@@ -12,11 +12,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://hilarus.dev";
 
   try {
-    const metaSnap = await getDoc(doc(db, "site_settings", "metadata"));
-    if (metaSnap.exists()) {
-      const meta = metaSnap.data() as SiteMetadataConfig;
-      if (meta.siteUrl) siteUrl = meta.siteUrl;
-      else if (meta.canonicalUrl) siteUrl = meta.canonicalUrl;
+    const globalSnap = await getDoc(doc(db, "siteConfig", "global"));
+    if (globalSnap.exists()) {
+      const globalData = globalSnap.data() as SiteMetadataConfig;
+      if (globalData.siteUrl) siteUrl = globalData.siteUrl;
+      else if (globalData.canonicalUrl) siteUrl = globalData.canonicalUrl;
+    } else {
+      const metaSnap = await getDoc(doc(db, "site_settings", "metadata"));
+      if (metaSnap.exists()) {
+        const meta = metaSnap.data() as SiteMetadataConfig;
+        if (meta.siteUrl) siteUrl = meta.siteUrl;
+        else if (meta.canonicalUrl) siteUrl = meta.canonicalUrl;
+      }
     }
   } catch {
     // ignore
