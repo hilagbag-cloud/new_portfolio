@@ -47,6 +47,15 @@ export interface LearningResource {
   sections: LearningSection[];
   quiz?: QuizQuestion[];
   objectives?: string[];
+
+  // Imported File & Download Attachment
+  fileName?: string;
+  fileSize?: number;
+  fileSizeFormatted?: string;
+  fileType?: string;
+  fileDataUrl?: string;
+  fileUrl?: string;
+  fileContentText?: string;
 }
 
 export const defaultLearningResources: LearningResource[] = [

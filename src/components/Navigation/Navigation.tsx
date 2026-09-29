@@ -151,10 +151,10 @@ export function Navigation() {
               <a
                 href={site.nav.contact.href}
                 onClick={handleLinkClick}
-                className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3.5 font-mono text-xs font-bold text-accent-contrast focus-ring shadow-lg hover:opacity-95 transition-opacity"
+                className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3.5 font-mono text-xs font-extrabold text-black focus-ring shadow-lg hover:brightness-105 transition-all"
               >
                 <span>CONTACTER LE STUDIO</span>
-                <ArrowUpRight size={15} strokeWidth={2.2} />
+                <ArrowUpRight size={15} strokeWidth={2.5} className="text-black" />
               </a>
             </motion.div>
           </motion.div>

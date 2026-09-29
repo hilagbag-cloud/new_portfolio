@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -17,6 +18,8 @@ import {
   Send,
   Loader2,
   RotateCcw,
+  Clock,
+  Compass,
 } from "lucide-react";
 
 const SCALE_OPTIONS = [
@@ -28,6 +31,7 @@ const SCALE_OPTIONS = [
 ];
 
 export default function FormPage() {
+  const router = useRouter();
   const [q1, setQ1] = useState<string>("");
   const [q2, setQ2] = useState<string>("");
   const [q3, setQ3] = useState<string>("");
@@ -36,9 +40,32 @@ export default function FormPage() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Redirection states: 3-second automatic redirect with direct access button
+  const [countdown, setCountdown] = useState<number>(3);
+  const [isRedirectCancelled, setIsRedirectCancelled] = useState<boolean>(false);
+
   // Compute completion progress
   const answeredCount = [q1, q2, q3].filter(Boolean).length;
   const isFormComplete = answeredCount === 3;
+
+  // Handle 3-second automatic redirection after successful submission
+  useEffect(() => {
+    if (!isSuccess || isRedirectCancelled) return;
+
+    setCountdown(3);
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          router.push("/learning");
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isSuccess, isRedirectCancelled, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,6 +100,8 @@ export default function FormPage() {
     setQ2("");
     setQ3("");
     setIsSuccess(false);
+    setCountdown(3);
+    setIsRedirectCancelled(false);
     setErrorMessage(null);
   };
 
@@ -203,16 +232,18 @@ export default function FormPage() {
                           key={`q1-${opt.value}`}
                           type="button"
                           onClick={() => setQ1(opt.value)}
-                          className={`flex flex-col items-center justify-center text-center p-3 rounded-xl border transition-all text-xs font-medium cursor-pointer ${
+                          className={`flex flex-col items-center justify-center text-center p-3 rounded-xl border transition-all text-xs cursor-pointer ${
                             isSelected
-                              ? "border-accent bg-accent/15 text-accent shadow-[0_0_12px_rgba(168,243,90,0.15)] ring-1 ring-accent"
-                              : "border-border/80 bg-bg/60 text-muted hover:border-border hover:text-text hover:bg-surface"
+                              ? "border-accent bg-accent text-black font-bold shadow-[0_0_14px_rgba(168,243,90,0.35)] ring-2 ring-accent"
+                              : "border-border/80 bg-bg/60 text-muted font-medium hover:border-border hover:text-text hover:bg-surface"
                           }`}
                         >
-                          <span className="font-mono text-sm font-bold mb-1 opacity-70">
+                          <span className={`font-mono text-sm font-bold mb-1 ${isSelected ? "text-black" : "opacity-70"}`}>
                             {opt.short}
                           </span>
-                          <span className="leading-tight">{opt.label}</span>
+                          <span className={`leading-tight ${isSelected ? "text-black font-bold" : ""}`}>
+                            {opt.label}
+                          </span>
                         </button>
                       );
                     })}
@@ -222,7 +253,7 @@ export default function FormPage() {
                 {/* Question 2 */}
                 <div className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-5 sm:p-6 transition-all hover:border-border/90">
                   <div className="flex items-center gap-2 text-xs font-mono text-muted uppercase tracking-wider">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-md bg-accent/15 text-accent font-bold text-[11px]">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-md bg-accent text-black font-bold text-[11px]">
                       2
                     </span>
                     <span>Question 2 sur 3</span>
@@ -244,16 +275,18 @@ export default function FormPage() {
                           key={`q2-${opt.value}`}
                           type="button"
                           onClick={() => setQ2(opt.value)}
-                          className={`flex flex-col items-center justify-center text-center p-3 rounded-xl border transition-all text-xs font-medium cursor-pointer ${
+                          className={`flex flex-col items-center justify-center text-center p-3 rounded-xl border transition-all text-xs cursor-pointer ${
                             isSelected
-                              ? "border-accent bg-accent/15 text-accent shadow-[0_0_12px_rgba(168,243,90,0.15)] ring-1 ring-accent"
-                              : "border-border/80 bg-bg/60 text-muted hover:border-border hover:text-text hover:bg-surface"
+                              ? "border-accent bg-accent text-black font-bold shadow-[0_0_14px_rgba(168,243,90,0.35)] ring-2 ring-accent"
+                              : "border-border/80 bg-bg/60 text-muted font-medium hover:border-border hover:text-text hover:bg-surface"
                           }`}
                         >
-                          <span className="font-mono text-sm font-bold mb-1 opacity-70">
+                          <span className={`font-mono text-sm font-bold mb-1 ${isSelected ? "text-black" : "opacity-70"}`}>
                             {opt.short}
                           </span>
-                          <span className="leading-tight">{opt.label}</span>
+                          <span className={`leading-tight ${isSelected ? "text-black font-bold" : ""}`}>
+                            {opt.label}
+                          </span>
                         </button>
                       );
                     })}
@@ -263,7 +296,7 @@ export default function FormPage() {
                 {/* Question 3 */}
                 <div className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-5 sm:p-6 transition-all hover:border-border/90">
                   <div className="flex items-center gap-2 text-xs font-mono text-muted uppercase tracking-wider">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-md bg-accent/15 text-accent font-bold text-[11px]">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-md bg-accent text-black font-bold text-[11px]">
                       3
                     </span>
                     <span>Question 3 sur 3</span>
@@ -285,16 +318,18 @@ export default function FormPage() {
                           key={`q3-${opt.value}`}
                           type="button"
                           onClick={() => setQ3(opt.value)}
-                          className={`flex flex-col items-center justify-center text-center p-3 rounded-xl border transition-all text-xs font-medium cursor-pointer ${
+                          className={`flex flex-col items-center justify-center text-center p-3 rounded-xl border transition-all text-xs cursor-pointer ${
                             isSelected
-                              ? "border-accent bg-accent/15 text-accent shadow-[0_0_12px_rgba(168,243,90,0.15)] ring-1 ring-accent"
-                              : "border-border/80 bg-bg/60 text-muted hover:border-border hover:text-text hover:bg-surface"
+                              ? "border-accent bg-accent text-black font-bold shadow-[0_0_14px_rgba(168,243,90,0.35)] ring-2 ring-accent"
+                              : "border-border/80 bg-bg/60 text-muted font-medium hover:border-border hover:text-text hover:bg-surface"
                           }`}
                         >
-                          <span className="font-mono text-sm font-bold mb-1 opacity-70">
+                          <span className={`font-mono text-sm font-bold mb-1 ${isSelected ? "text-black" : "opacity-70"}`}>
                             {opt.short}
                           </span>
-                          <span className="leading-tight">{opt.label}</span>
+                          <span className={`leading-tight ${isSelected ? "text-black font-bold" : ""}`}>
+                            {opt.label}
+                          </span>
                         </button>
                       );
                     })}
@@ -331,21 +366,21 @@ export default function FormPage() {
                   <button
                     type="submit"
                     disabled={!isFormComplete || isSubmitting}
-                    className={`inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all order-1 sm:order-2 w-full sm:w-auto shadow-sm ${
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm transition-all order-1 sm:order-2 w-full sm:w-auto shadow-sm ${
                       isFormComplete && !isSubmitting
-                        ? "bg-accent text-accent-contrast hover:opacity-90 cursor-pointer shadow-[0_0_16px_rgba(168,243,90,0.25)]"
-                        : "bg-surface border border-border text-muted cursor-not-allowed opacity-60"
+                        ? "bg-accent text-black font-bold hover:brightness-105 cursor-pointer shadow-[0_0_18px_rgba(168,243,90,0.3)] active:scale-[0.98]"
+                        : "bg-surface border border-border text-muted font-medium cursor-not-allowed opacity-60"
                     }`}
                   >
                     {isSubmitting ? (
                       <>
-                        <Loader2 size={16} className="animate-spin" />
-                        <span>Envoi sécurisé...</span>
+                        <Loader2 size={16} className="animate-spin text-black" />
+                        <span className="text-black font-bold">Envoi sécurisé...</span>
                       </>
                     ) : (
                       <>
-                        <Send size={16} />
-                        <span>Envoyer mes réponses</span>
+                        <Send size={16} className={isFormComplete ? "text-black" : ""} />
+                        <span className={isFormComplete ? "text-black font-bold" : ""}>Envoyer mes réponses</span>
                       </>
                     )}
                   </button>
@@ -360,17 +395,17 @@ export default function FormPage() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.4 }}
-              className="flex flex-col items-center justify-center text-center py-12 px-4 gap-6 rounded-3xl border border-accent/30 bg-surface/80 backdrop-blur-md shadow-lg"
+              className="flex flex-col items-center justify-center text-center py-10 px-4 sm:px-8 gap-6 rounded-3xl border border-accent/40 bg-surface/90 backdrop-blur-md shadow-2xl"
             >
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-accent/40 bg-accent/15 text-accent shadow-[0_0_24px_rgba(168,243,90,0.25)]">
-                <CheckCircle2 size={36} />
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-accent/50 bg-accent text-black shadow-[0_0_28px_rgba(168,243,90,0.35)]">
+                <CheckCircle2 size={36} className="text-black" />
               </div>
 
               <div className="flex flex-col gap-2 max-w-lg">
-                <span className="font-mono text-xs uppercase tracking-wider text-accent font-semibold">
-                  Réponse Enregistrée
+                <span className="font-mono text-xs uppercase tracking-wider text-accent font-bold">
+                  Réponse Enregistrée avec Succès
                 </span>
-                <h2 className="font-display text-2xl sm:text-3xl text-text">
+                <h2 className="font-display text-2xl sm:text-3xl text-text font-bold">
                   Merci beaucoup pour votre participation !
                 </h2>
                 <p className="text-sm sm:text-base text-muted leading-relaxed mt-1">
@@ -379,35 +414,82 @@ export default function FormPage() {
                 </p>
               </div>
 
+              {/* Automatic Redirect Countdown Banner */}
+              {!isRedirectCancelled ? (
+                <div className="w-full max-w-md rounded-2xl border border-accent/40 bg-accent/10 p-4 flex flex-col items-center gap-2.5 shadow-sm">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-text">
+                    <Clock size={16} className="text-accent animate-pulse" />
+                    <span>
+                      Redirection automatique vers l&apos;Espace Apprentissage dans{" "}
+                      <span className="font-mono text-sm font-extrabold text-black bg-accent px-2 py-0.5 rounded-md inline-block shadow-sm">
+                        {countdown}s
+                      </span>
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-surface rounded-full overflow-hidden border border-border">
+                    <motion.div
+                      className="h-full bg-accent rounded-full"
+                      initial={{ width: "100%" }}
+                      animate={{ width: `${(countdown / 3) * 100}%` }}
+                      transition={{ duration: 1, ease: "linear" }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsRedirectCancelled(true)}
+                    className="text-[11px] text-muted hover:text-text underline transition-colors pt-0.5 cursor-pointer"
+                  >
+                    Annuler la redirection automatique et rester sur cette page
+                  </button>
+                </div>
+              ) : (
+                <div className="w-full max-w-md rounded-2xl border border-border bg-surface/60 p-3 text-xs text-muted text-center">
+                  Redirection automatique désactivée. Utilisez le bouton direct ci-dessous pour accéder aux ressources d&apos;apprentissage.
+                </div>
+              )}
+
               {/* Summary of submitted choices */}
               <div className="w-full max-w-md rounded-2xl border border-border bg-bg/80 p-4 text-left flex flex-col gap-2.5 text-xs">
                 <div className="flex items-center justify-between pb-2 border-b border-border/60">
                   <span className="text-muted">Intérêt pour le programme</span>
-                  <span className="font-medium text-text">{q1}</span>
+                  <span className="font-bold text-text">{q1}</span>
                 </div>
                 <div className="flex items-center justify-between pb-2 border-b border-border/60">
                   <span className="text-muted">Lecture en ligne</span>
-                  <span className="font-medium text-text">{q2}</span>
+                  <span className="font-bold text-text">{q2}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted">Prêt à continuer l&apos;apprentissage</span>
-                  <span className="font-medium text-text">{q3}</span>
+                  <span className="font-bold text-text">{q3}</span>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+              {/* Direct Access CTA Button */}
+              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2 w-full max-w-md justify-center">
+                <Link
+                  href="/learning"
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-accent text-black font-bold px-6 py-3.5 text-xs sm:text-sm hover:brightness-105 transition-all shadow-[0_0_24px_rgba(168,243,90,0.35)] active:scale-[0.98]"
+                >
+                  <Compass size={18} className="text-black" />
+                  <span>Accéder immédiatement à l&apos;Espace Apprentissage</span>
+                  <ArrowRight size={18} className="text-black" />
+                </Link>
+              </div>
+
+              {/* Secondary Actions */}
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-1 text-xs">
                 <Link
                   href="/"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent text-accent-contrast px-6 py-2.5 text-xs font-semibold hover:opacity-90 transition-opacity shadow-sm"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-4 py-2.5 text-xs font-medium text-muted hover:text-text hover:border-accent transition-colors"
                 >
+                  <ArrowLeft size={13} />
                   <span>Retour à l&apos;accueil du portfolio</span>
-                  <ArrowRight size={14} />
                 </Link>
 
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-4 py-2.5 text-xs font-medium text-muted hover:text-text hover:border-accent transition-colors"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-4 py-2.5 text-xs font-medium text-muted hover:text-text hover:border-accent transition-colors cursor-pointer"
                 >
                   <RotateCcw size={13} />
                   <span>Soumettre une autre réponse</span>

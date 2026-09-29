@@ -9,7 +9,7 @@
   --color-text: #f1f3ee;
   --color-muted: #8c958d;
   --color-accent: #a8f35a;
-  --color-accent-contrast: #080a09;
+  --color-accent-contrast: #000000;
   --color-live-pulse: #a8f35a;
   --theme-shadow: 0 12px 36px rgba(0, 0, 0, 0.7);
 
@@ -24,8 +24,8 @@ html.light {
   --color-border: #e4e4e7;
   --color-text: #09090b;
   --color-muted: #52525b;
-  --color-accent: #09090b;
-  --color-accent-contrast: #ffffff;
+  --color-accent: #16a34a;
+  --color-accent-contrast: #000000;
   --color-live-pulse: #16a34a;
   --theme-shadow: 0 10px 30px -6px rgba(0, 0, 0, 0.08);
 }
@@ -200,7 +200,7 @@ body {
 .btn-learn-more .circle .icon.arrow {
   width: 1.125rem;
   height: 0.125rem;
-  background: var(--color-accent-contrast);
+  background: #000000;
   position: relative;
   display: block;
 }
@@ -212,8 +212,8 @@ body {
   right: 0;
   width: 0.5rem;
   height: 0.5rem;
-  border-top: 0.14rem solid var(--color-accent-contrast);
-  border-right: 0.14rem solid var(--color-accent-contrast);
+  border-top: 0.14rem solid #000000;
+  border-right: 0.14rem solid #000000;
   transform: rotate(45deg);
 }
 
@@ -252,7 +252,8 @@ body {
 }
 
 .btn-learn-more:hover .button-text {
-  color: var(--color-accent-contrast);
+  color: #000000 !important;
+  font-weight: 800 !important;
 }
 
 .btn-learn-more:active {
@@ -306,7 +307,8 @@ body {
 }
 
 .btn-skew:hover {
-  color: var(--color-accent-contrast);
+  color: #000000 !important;
+  font-weight: 800 !important;
   border-color: var(--color-accent);
   transform: translateY(-2px);
   box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.3);

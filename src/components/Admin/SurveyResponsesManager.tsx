@@ -517,7 +517,7 @@ export function SurveyResponsesManager({ isEditingEnabled = false }: Props) {
             <Link
               href="/form"
               target="_blank"
-              className="mt-2 inline-flex items-center gap-1.5 rounded-xl bg-accent text-accent-contrast px-4 py-2 text-xs font-semibold hover:opacity-90 transition-opacity"
+              className="mt-2 inline-flex items-center gap-1.5 rounded-xl bg-accent text-black font-bold px-4 py-2 text-xs hover:brightness-105 transition-all shadow-sm"
             >
               <span>Accéder à /form</span>
               <ExternalLink size={13} />

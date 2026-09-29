@@ -15,6 +15,7 @@ import {
   trackResourceView,
   trackResourceDownload,
 } from "@/lib/learning-analytics";
+import Image from "next/image";
 import {
   BookOpen,
   Search,
@@ -28,6 +29,7 @@ import {
   Image as ImageIcon,
   CheckCircle2,
   ExternalLink,
+  X,
 } from "lucide-react";
 
 export default function LearningPage() {
@@ -88,7 +90,23 @@ export default function LearningPage() {
       prev.map((r) => (r.id === res.id ? { ...r, downloadCount: (r.downloadCount || 0) + 1 } : r))
     );
 
-    // Download document directly
+    // If an actual uploaded file exists, download it directly
+    if (res.fileDataUrl) {
+      const a = document.createElement("a");
+      a.href = res.fileDataUrl;
+      a.download = res.fileName || `${res.id}.${res.type === "pdf" ? "pdf" : "dat"}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    }
+
+    if (res.fileUrl) {
+      window.open(res.fileUrl, "_blank");
+      return;
+    }
+
+    // Fallback: Download document directly as formatted HTML
     const docContent = `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -185,42 +203,71 @@ export default function LearningPage() {
         </div>
       </header>
 
-      {/* Hero Header */}
-      <section className="border-b border-border bg-surface/30 py-12 sm:py-16">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 flex flex-col gap-5 text-center items-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-4 py-1.5 text-xs font-semibold text-accent">
-            <BookOpen size={14} />
-            <span>Plateforme Libre de Partage de Savoir</span>
-          </div>
+      {/* Compact Modern Hero Section */}
+      <section className="relative border-b border-border/60 bg-gradient-to-b from-surface/80 via-surface/40 to-transparent py-5 sm:py-7 md:py-9 overflow-hidden">
+        {/* Subtle background ambient glow */}
+        <div
+          className="pointer-events-none absolute -top-16 right-1/4 h-52 w-52 sm:h-72 sm:w-72 rounded-full bg-accent/10 blur-[90px] -z-10"
+          aria-hidden
+        />
 
-          <h1 className="font-display text-3xl sm:text-5xl lg:text-6xl text-text font-bold tracking-tight max-w-3xl leading-tight">
-            Apprentissage Boosté <span className="text-accent">by Hilarus</span>
-          </h1>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-5 sm:gap-6 md:gap-8 items-center">
+            {/* Left Column: Title, Short Subtitle, Quick Value Props */}
+            <div className="md:col-span-7 flex flex-col items-start gap-2.5 sm:gap-3.5 text-left">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-[11px] font-mono font-semibold text-accent">
+                <BookOpen size={12} />
+                <span>Ressources Libres & Guides Pratiques</span>
+              </div>
 
-          <p className="text-base sm:text-lg text-muted max-w-2xl leading-relaxed">
-            Ressources, livres, supports de cours PDF, guides de révision, fiches et schémas pratiques pour apprendre n&apos;importe quel sujet en profondeur.
-          </p>
+              <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl text-text font-bold tracking-tight leading-tight">
+                Apprentissage Boosté <span className="text-accent">by Hilarus</span>
+              </h1>
 
-          {/* Quick Info Badge */}
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 pt-2 text-xs font-mono text-muted">
-            <span className="flex items-center gap-1">
-              <CheckCircle2 size={13} className="text-accent" />
-              <span>Accès 100% Libre & Gratuit</span>
-            </span>
-            <span>·</span>
-            <span>Visionneuse Interactive</span>
-            <span>·</span>
-            <span>Téléchargements Illimités</span>
+              <p className="text-xs sm:text-sm text-muted max-w-xl leading-relaxed">
+                Supports de cours, fiches synthétiques et documents techniques pour accélérer votre maîtrise du développement, de l&apos;IA et de la data.
+              </p>
+
+              {/* Compact Meta Badges */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-0.5 text-[11px] font-mono text-muted">
+                <span className="inline-flex items-center gap-1 text-text/90">
+                  <CheckCircle2 size={13} className="text-accent" />
+                  <span>Accès 100% libre</span>
+                </span>
+                <span className="text-border">·</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                  <span>Lecteur interactif</span>
+                </span>
+                <span className="text-border">·</span>
+                <span>Téléchargement direct</span>
+              </div>
+            </div>
+
+            {/* Right Column: Seamlessly Integrated Visual Asset */}
+            <div className="md:col-span-5 flex justify-center md:justify-end">
+              <div className="relative w-full max-w-[280px] sm:max-w-[340px] md:max-w-[380px] aspect-[4/3] max-h-[160px] sm:max-h-[200px] md:max-h-[220px] lg:max-h-[240px] flex items-center justify-center">
+                <Image
+                  src="/learning-hero.jpg"
+                  alt="Apprentissage Boosté by Hilarus"
+                  fill
+                  sizes="(max-width: 768px) 280px, 380px"
+                  className="object-contain object-center md:object-right rounded-xl"
+                  priority
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Main Content Area */}
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:py-10 space-y-8">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:py-6 lg:py-8 space-y-6">
         {/* Controls: Search & Category Tabs */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-          {/* Format Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4">
+          {/* Categories: Modern scrollable horizontal row */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none touch-pan-x -mx-4 px-4 sm:mx-0 sm:px-0">
             {[
               { id: "all", label: "Tous", icon: BookOpen },
               { id: "pdf", label: "PDF & Cours", icon: FileText },
@@ -230,37 +277,61 @@ export default function LearningPage() {
             ].map((tab) => {
               const Icon = tab.icon;
               const isActive = selectedCategory === tab.id;
+              const count = tab.id === "all" 
+                ? resources.length 
+                : resources.filter((r) => r.type === tab.id).length;
               return (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => setSelectedCategory(tab.id)}
-                  className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all whitespace-nowrap ${
+                  className={`group inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all whitespace-nowrap shrink-0 active:scale-95 ${
                     isActive
-                      ? "bg-accent text-accent-contrast shadow-sm shadow-accent/20"
-                      : "border border-border bg-surface text-muted hover:border-border/90 hover:text-text"
+                      ? "bg-accent text-black font-bold shadow-sm shadow-accent/20"
+                      : "border border-border/80 bg-surface/90 text-muted hover:border-accent/40 hover:text-text"
                   }`}
                 >
-                  <Icon size={13} />
+                  <Icon size={13} className={isActive ? "text-black" : "text-muted group-hover:text-accent"} />
                   <span>{tab.label}</span>
+                  {count > 0 && (
+                    <span
+                      className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${
+                        isActive
+                          ? "bg-black/15 text-black font-extrabold"
+                          : "bg-surface-elevated text-muted"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  )}
                 </button>
               );
             })}
           </div>
 
           {/* Search bar */}
-          <div className="relative w-full sm:w-72">
+          <div className="relative w-full md:w-80 shrink-0">
             <Search
               size={15}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
             />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Rechercher un cours, un sujet..."
-              className="w-full rounded-xl border border-border bg-surface pl-10 pr-4 py-2 text-xs text-text placeholder:text-muted focus:border-accent focus:outline-none transition-colors"
+              className="w-full rounded-xl border border-border/80 bg-surface/90 pl-10 pr-9 py-2 text-xs text-text placeholder:text-muted focus:border-accent focus:bg-surface focus:outline-none transition-all"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                aria-label="Effacer la recherche"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-text p-1 rounded-md transition-colors"
+              >
+                <X size={13} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -318,6 +389,19 @@ export default function LearningPage() {
                     {res.miniDescription}
                   </p>
 
+                  {/* Attached file badge if present */}
+                  {res.fileName && (
+                    <div className="rounded-xl border border-accent/25 bg-accent/5 px-2.5 py-1.5 text-[11px] flex items-center justify-between gap-1 text-muted">
+                      <span className="flex items-center gap-1.5 truncate text-text/90 font-medium">
+                        <FileText size={12} className="text-accent shrink-0" />
+                        <span className="truncate">{res.fileName}</span>
+                      </span>
+                      {res.fileSizeFormatted && (
+                        <span className="font-mono text-[10px] text-muted shrink-0">{res.fileSizeFormatted}</span>
+                      )}
+                    </div>
+                  )}
+
                   {/* Telemetry and interactive actions */}
                   <div className="pt-3 border-t border-border/60 flex items-center justify-between gap-2">
                     {/* Views & Downloads stats */}
@@ -350,7 +434,7 @@ export default function LearningPage() {
 
                       <button
                         type="button"
-                        className="inline-flex items-center gap-1 rounded-xl bg-accent text-accent-contrast px-3 py-1.5 text-xs font-semibold group-hover:opacity-95 transition-opacity"
+                        className="inline-flex items-center gap-1 rounded-xl bg-accent text-black font-bold px-3 py-1.5 text-xs hover:brightness-105 transition-all shadow-sm"
                       >
                         <span>Consulter</span>
                       </button>
@@ -363,7 +447,7 @@ export default function LearningPage() {
         )}
 
         {/* Researcher CTA Banner */}
-        <div className="rounded-3xl border border-accent/30 bg-surface/80 p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="rounded-3xl border border-accent/40 bg-surface/90 p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
           <div className="space-y-1">
             <h3 className="font-display text-lg sm:text-xl font-bold text-text">
               Vous êtes chercheur ou étudiant régulier ?
@@ -375,10 +459,10 @@ export default function LearningPage() {
 
           <Link
             href="/form"
-            className="inline-flex items-center gap-2 rounded-xl bg-accent text-accent-contrast px-5 py-2.5 text-xs font-semibold hover:opacity-90 transition-opacity shrink-0 shadow-sm"
+            className="inline-flex items-center gap-2 rounded-xl bg-accent text-black font-bold px-5 py-2.5 text-xs hover:brightness-105 transition-all shrink-0 shadow-[0_0_18px_rgba(168,243,90,0.3)] active:scale-[0.98]"
           >
             <span>Donner mon avis (/form)</span>
-            <Sparkles size={14} />
+            <Sparkles size={14} className="text-black" />
           </Link>
         </div>
       </main>

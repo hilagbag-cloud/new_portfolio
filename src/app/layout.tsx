@@ -7,6 +7,7 @@ import {
   getDynamicSiteMetadata,
   buildNextMetadata,
   buildJsonLdSchema,
+  detectDeploymentHost,
 } from "@/lib/cms-meta";
 import "./globals.css";
 
@@ -31,8 +32,11 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const dynamicConfig = await getDynamicSiteMetadata();
-  return buildNextMetadata(dynamicConfig);
+  const [dynamicConfig, detectedUrl] = await Promise.all([
+    getDynamicSiteMetadata(),
+    detectDeploymentHost(),
+  ]);
+  return buildNextMetadata(dynamicConfig, detectedUrl);
 }
 
 export default async function RootLayout({
@@ -40,8 +44,11 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const dynamicConfig = await getDynamicSiteMetadata();
-  const jsonLd = buildJsonLdSchema(dynamicConfig);
+  const [dynamicConfig, detectedUrl] = await Promise.all([
+    getDynamicSiteMetadata(),
+    detectDeploymentHost(),
+  ]);
+  const jsonLd = buildJsonLdSchema(dynamicConfig, detectedUrl);
 
   return (
     <html lang="fr" className={`${suezOne.variable} ${inter.variable} ${ibmPlexMono.variable}`} suppressHydrationWarning>

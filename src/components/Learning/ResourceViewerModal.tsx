@@ -14,6 +14,9 @@ import {
   HelpCircle,
   Sparkles,
   FileText,
+  FileCode,
+  Image as ImageIcon,
+  FileCheck,
 } from "lucide-react";
 import type { LearningResource } from "@/data/learningResources";
 import { trackResourceDownload } from "@/lib/learning-analytics";
@@ -46,7 +49,24 @@ export function ResourceViewerModal({ resource, onClose, onDownloaded }: Props) 
     trackResourceDownload(resource.id, resource.downloadCount);
     if (onDownloaded) onDownloaded();
 
-    // Generate formatted printable HTML / Text file
+    // 1. Direct download if an actual uploaded file (PDF, code, image, etc.) is attached
+    if (resource.fileDataUrl) {
+      const a = document.createElement("a");
+      a.href = resource.fileDataUrl;
+      a.download = resource.fileName || `${resource.id}.${resource.type === "pdf" ? "pdf" : "dat"}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    }
+
+    // 2. Direct link if an external download URL was provided
+    if (resource.fileUrl) {
+      window.open(resource.fileUrl, "_blank");
+      return;
+    }
+
+    // 3. Fallback: Generate formatted printable HTML document
     const docContent = `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -130,9 +150,9 @@ export function ResourceViewerModal({ resource, onClose, onDownloaded }: Props) 
               <button
                 type="button"
                 onClick={handleDownloadDocument}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-accent text-accent-contrast px-3.5 py-1.5 text-xs font-semibold hover:opacity-90 transition-opacity shadow-sm"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-accent text-black font-bold px-3.5 py-1.5 text-xs hover:brightness-105 transition-all shadow-sm"
               >
-                <Download size={14} />
+                <Download size={14} className="text-black" />
                 <span>Télécharger la ressource</span>
               </button>
 
@@ -186,6 +206,75 @@ export function ResourceViewerModal({ resource, onClose, onDownloaded }: Props) 
               {/* Decorative background shape */}
               <div className="absolute -right-16 -bottom-16 w-64 h-64 rounded-full bg-white/5 blur-2xl pointer-events-none" />
             </div>
+
+            {/* Imported File Attachment Card & Preview */}
+            {(resource.fileName || resource.fileDataUrl || resource.fileUrl) && (
+              <div className="rounded-2xl border border-accent/40 bg-surface p-5 sm:p-6 space-y-4 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-accent/40 bg-accent/15 text-accent shadow-sm">
+                      {resource.type === "pdf" ? (
+                        <FileText size={24} />
+                      ) : resource.type === "image" ? (
+                        <ImageIcon size={24} />
+                      ) : resource.type === "file" ? (
+                        <FileCode size={24} />
+                      ) : (
+                        <FileCheck size={24} />
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-text text-sm sm:text-base">
+                          {resource.fileName || "Document de la ressource"}
+                        </span>
+                        <span className="rounded-md bg-accent/10 border border-accent/20 px-2 py-0.5 font-mono text-[10px] font-bold text-accent uppercase">
+                          {resource.type}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted font-mono mt-0.5">
+                        {resource.fileSizeFormatted ? `Taille : ${resource.fileSizeFormatted}` : "Fichier vérifié · Téléchargement direct disponible"}
+                        {resource.fileType ? ` · ${resource.fileType}` : ""}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleDownloadDocument}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent text-black font-bold px-4 py-2 text-xs hover:brightness-105 transition-all shadow-sm shrink-0"
+                  >
+                    <Download size={14} className="text-black" />
+                    <span>Télécharger ce fichier</span>
+                  </button>
+                </div>
+
+                {/* Visual Preview if Image */}
+                {resource.type === "image" && resource.fileDataUrl && (
+                  <div className="rounded-xl border border-border bg-bg/80 p-2 overflow-hidden flex justify-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={resource.fileDataUrl}
+                      alt={resource.fileName || resource.title}
+                      className="max-h-[380px] w-auto rounded-lg object-contain"
+                    />
+                  </div>
+                )}
+
+                {/* Visual Preview if Code or Text Content */}
+                {resource.fileContentText && (
+                  <div className="rounded-xl border border-border bg-bg overflow-hidden text-xs">
+                    <div className="px-4 py-2 border-b border-border bg-surface/60 text-muted font-mono flex items-center justify-between text-[11px]">
+                      <span>Aperçu du contenu importé</span>
+                      <span>{resource.fileName}</span>
+                    </div>
+                    <pre className="p-4 font-mono text-text/90 overflow-x-auto max-h-[300px] leading-relaxed">
+                      <code>{resource.fileContentText}</code>
+                    </pre>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Objectives block */}
             {resource.objectives && resource.objectives.length > 0 && (
@@ -409,9 +498,9 @@ export function ResourceViewerModal({ resource, onClose, onDownloaded }: Props) 
             <button
               type="button"
               onClick={handleDownloadDocument}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-accent text-accent-contrast px-4 py-2 text-xs font-semibold hover:opacity-90 transition-opacity"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-accent text-black font-bold px-4 py-2 text-xs hover:brightness-105 transition-all shadow-sm"
             >
-              <Download size={14} />
+              <Download size={14} className="text-black" />
               <span>Télécharger le support complet</span>
             </button>
           </div>

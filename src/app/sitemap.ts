@@ -3,26 +3,23 @@ import { milestones as defaultMilestones, type Milestone } from "@/data/mileston
 import { projects as defaultProjects, type Project } from "@/data/projects";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { SiteMetadataConfig } from "@/lib/cms-meta";
+import { type SiteMetadataConfig, detectDeploymentHost } from "@/lib/cms-meta";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  let siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://hilarus.dev";
+  const detectedUrl = await detectDeploymentHost();
+  let siteUrl = detectedUrl;
 
   try {
     const globalSnap = await getDoc(doc(db, "siteConfig", "global"));
     if (globalSnap.exists()) {
       const globalData = globalSnap.data() as SiteMetadataConfig;
-      if (globalData.siteUrl) siteUrl = globalData.siteUrl;
-      else if (globalData.canonicalUrl) siteUrl = globalData.canonicalUrl;
-    } else {
-      const metaSnap = await getDoc(doc(db, "site_settings", "metadata"));
-      if (metaSnap.exists()) {
-        const meta = metaSnap.data() as SiteMetadataConfig;
-        if (meta.siteUrl) siteUrl = meta.siteUrl;
-        else if (meta.canonicalUrl) siteUrl = meta.canonicalUrl;
+      if (globalData.siteUrl && !globalData.siteUrl.includes("hilarus.dev")) {
+        siteUrl = globalData.siteUrl;
+      } else if (globalData.canonicalUrl && !globalData.canonicalUrl.includes("hilarus.dev")) {
+        siteUrl = globalData.canonicalUrl;
       }
     }
   } catch {

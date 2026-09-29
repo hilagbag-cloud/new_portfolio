@@ -254,8 +254,8 @@ export function Contact() {
                   >
                     <span className="circle !w-[3.25rem] !h-[3.25rem]" aria-hidden="true">
                       {status === "loading" ? (
-                        <span className="flex h-full w-full items-center justify-center text-bg">
-                          <Loader2 size={18} className="animate-spin" />
+                        <span className="flex h-full w-full items-center justify-center text-black">
+                          <Loader2 size={18} className="animate-spin text-black" />
                         </span>
                       ) : (
                         <span className="icon arrow"></span>

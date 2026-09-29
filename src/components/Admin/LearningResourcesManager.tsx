@@ -28,9 +28,18 @@ import {
   CheckCircle,
   HelpCircle,
   BarChart2,
+  UploadCloud,
+  FileUp,
+  Paperclip,
+  FileCheck,
+  FileCode,
+  AlertTriangle,
+  Send,
+  Loader2,
 } from "lucide-react";
 import { defaultLearningResources, type LearningResource } from "@/data/learningResources";
 import { ConfirmWriteModal, type PendingFirestoreWrite } from "./ConfirmWriteModal";
+import { ResourcePreviewModal } from "./ResourcePreviewModal";
 
 const PRESET_COLORS = [
   { name: "Bleu Océan", hex: "#0f2b48" },
@@ -62,10 +71,30 @@ export function LearningResourcesManager({ isEditingEnabled = false, setIsEditin
   const [newCoverColor, setNewCoverColor] = useState("#0f2b48");
   const [newBadge, setNewBadge] = useState("GUIDE · ESSENTIEL");
   const [newReadTime, setNewReadTime] = useState("15 min de lecture");
+  const [newObjectivesText, setNewObjectivesText] = useState("");
+  const [newDetailedContent, setNewDetailedContent] = useState("");
+  const [newFileUrl, setNewFileUrl] = useState("");
 
-  // Deletion modal
+  // Uploaded file attachment state
+  const [uploadedFile, setUploadedFile] = useState<{
+    name: string;
+    size: number;
+    sizeFormatted: string;
+    type: string;
+    dataUrl?: string;
+    textContent?: string;
+  } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
+
+  // Deletion modal state
   const [pendingWrite, setPendingWrite] = useState<PendingFirestoreWrite | null>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+
+  // Complete preview state
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewResourceData, setPreviewResourceData] = useState<LearningResource | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   // Sync resources from Firestore
   useEffect(() => {
@@ -122,17 +151,15 @@ export function LearningResourcesManager({ isEditingEnabled = false, setIsEditin
       (e) => e.type === "learning_visit" || e.path === "/learning"
     );
 
-    const totalVisits = Math.max(learningVisits.length, 128); // minimum baseline for demonstration
+    const totalVisits = Math.max(learningVisits.length, 128);
     const returningVisits = learningVisits.filter((e) => e.isReturning).length;
     const uniqueVisitors = new Set(learningVisits.map((e) => e.visitorId)).size;
 
-    // Fidélisation (Loyalty rate): % of visits that are from returning visitors
     const loyaltyRate =
       totalVisits > 0
         ? Math.round((Math.max(returningVisits, Math.round(totalVisits * 0.38)) / totalVisits) * 100)
         : 38;
 
-    // Aggregates across resources
     const totalViews = resources.reduce((acc, r) => acc + (r.viewsCount || 0), 0);
     const totalDownloads = resources.reduce((acc, r) => acc + (r.downloadCount || 0), 0);
     const conversionRate =
@@ -148,52 +175,195 @@ export function LearningResourcesManager({ isEditingEnabled = false, setIsEditin
     };
   }, [analyticsEvents, resources]);
 
-  // Create new resource in Firestore
-  const handleCreateResource = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTitle.trim() || !newMiniDesc.trim()) return;
+  // Format bytes helper
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return "0 Octet";
+    const k = 1024;
+    const sizes = ["Octets", "Ko", "Mo", "Go"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+  };
 
+  // Process chosen or dropped file
+  const handleProcessFile = (file: File) => {
+    if (!file) return;
+    setFileError(null);
+
+    const sizeFormatted = formatBytes(file.size);
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+
+    // Check size against Firestore ~1MB document limit
+    if (file.size > 850 * 1024) {
+      setFileError(
+        "Ce fichier dépasse 850 Ko. Pour garantir la sauvegarde sans dépasser la limite de 1 Mo par document Firestore, son descriptif sera enregistré. Vous pouvez aussi renseigner un lien de téléchargement direct (Drive, GitHub, Cloud) ci-dessous."
+      );
+    }
+
+    // Auto-fill title if empty
+    if (!newTitle.trim()) {
+      const rawName = file.name.substring(0, file.name.lastIndexOf(".")) || file.name;
+      const cleanTitle = rawName
+        .replace(/[_-]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      setNewTitle(cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1));
+    }
+
+    // Auto-detect format & badge based on extension
+    if (["pdf"].includes(ext)) {
+      setNewType("pdf");
+      setNewBadge("PDF · COURS");
+    } else if (["png", "jpg", "jpeg", "webp", "svg"].includes(ext)) {
+      setNewType("image");
+      setNewBadge("SCHÉMA · INFOGRAPHIE");
+    } else if (["c", "h", "py", "js", "ts", "json", "sh", "cpp"].includes(ext)) {
+      setNewType("file");
+      setNewBadge(`${ext.toUpperCase()} · CODE & PROJET`);
+    } else if (["epub", "mobi"].includes(ext)) {
+      setNewType("book");
+      setNewBadge("LIVRE · OUVRAGE");
+    } else if (["txt", "md"].includes(ext)) {
+      setNewType("text");
+      setNewBadge("GUIDE · DOCUMENT");
+    }
+
+    const reader = new FileReader();
+
+    if (["txt", "md", "c", "h", "py", "js", "ts", "json"].includes(ext)) {
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        setUploadedFile({
+          name: file.name,
+          size: file.size,
+          sizeFormatted,
+          type: file.type || ext,
+          textContent: text,
+        });
+        if (!newMiniDesc.trim() && text) {
+          setNewMiniDesc(text.slice(0, 180).trim() + "...");
+        }
+      };
+      reader.readAsText(file);
+    } else {
+      // PDF, Images, Binaries
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        setUploadedFile({
+          name: file.name,
+          size: file.size,
+          sizeFormatted,
+          type: file.type || ext,
+          // Only save full base64 if under 850 KB to protect Firestore doc limit
+          dataUrl: file.size <= 850 * 1024 ? dataUrl : undefined,
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Build the complete LearningResource object from current form state
+  const buildCurrentResourceObject = (): LearningResource => {
     const id =
       newTitle
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-|-$/g, "") || `resource-${Date.now()}`;
 
-    const newRes: LearningResource = {
+    const objectives = newObjectivesText
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const sections = [
+      {
+        id: `sec-${Date.now()}`,
+        themeNumber: "Module 1",
+        title: newSubtitle.trim() || "Présentation & Notions Clés",
+        description: newDetailedContent.trim() || newMiniDesc.trim(),
+        keyPoints: objectives.length > 0 ? objectives : undefined,
+        codeSnippet:
+          uploadedFile?.textContent &&
+          ["c", "h", "py", "js", "ts", "json"].includes(
+            uploadedFile.name.split(".").pop()?.toLowerCase() || ""
+          )
+            ? {
+                language: uploadedFile.name.split(".").pop()?.toLowerCase() || "c",
+                title: uploadedFile.name,
+                code: uploadedFile.textContent,
+              }
+            : undefined,
+      },
+    ];
+
+    return {
       id,
-      title: newTitle.trim(),
+      title: newTitle.trim() || "Titre de la ressource",
       subtitle: newSubtitle.trim() || "Ressource publiée sur Apprentissage Boosté",
-      miniDescription: newMiniDesc.trim(),
+      miniDescription: newMiniDesc.trim() || "Description de la ressource...",
       category: newCategory,
       type: newType,
       coverColor: newCoverColor,
-      badge: newBadge.toUpperCase(),
+      badge: (newBadge.trim() || "RESSOURCE").toUpperCase(),
       readTime: newReadTime,
       viewsCount: 0,
       downloadCount: 0,
       published: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      sections: [
-        {
-          id: `sec-${Date.now()}`,
-          themeNumber: "Module 1",
-          title: "Introduction et Notions Fondamentales",
-          description: newMiniDesc.trim(),
-        },
-      ],
+      objectives: objectives.length > 0 ? objectives : undefined,
+      sections,
+      fileName: uploadedFile?.name,
+      fileSize: uploadedFile?.size,
+      fileSizeFormatted: uploadedFile?.sizeFormatted,
+      fileType: uploadedFile?.type,
+      fileDataUrl: uploadedFile?.dataUrl,
+      fileUrl: newFileUrl.trim() || undefined,
+      fileContentText: uploadedFile?.textContent,
     };
+  };
 
+  // Open complete preview modal
+  const handleOpenPreview = () => {
+    if (!newTitle.trim()) {
+      alert("Veuillez saisir au moins un titre pour prévisualiser la ressource.");
+      return;
+    }
+    const preview = buildCurrentResourceObject();
+    setPreviewResourceData(preview);
+    setShowPreviewModal(true);
+  };
+
+  // Core execution of resource publication
+  const executePublish = async (resourceToPublish: LearningResource) => {
+    setIsPublishing(true);
     try {
-      await setDoc(doc(db, "learningResources", id), newRes);
+      await setDoc(doc(db, "learningResources", resourceToPublish.id), resourceToPublish);
       setShowAddModal(false);
+      setShowPreviewModal(false);
+      setPreviewResourceData(null);
+      // Reset form
       setNewTitle("");
       setNewSubtitle("");
       setNewMiniDesc("");
+      setNewObjectivesText("");
+      setNewDetailedContent("");
+      setNewFileUrl("");
+      setUploadedFile(null);
+      setFileError(null);
     } catch (err) {
       console.error("Erreur lors de la création de la ressource :", err);
-      alert("Erreur lors de l'enregistrement sur Firestore.");
+      alert("Erreur lors de l'enregistrement sur Firestore. Merci de vérifier la taille de votre document.");
+    } finally {
+      setIsPublishing(false);
     }
+  };
+
+  // Create new resource from standard form submit
+  const handleCreateResource = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTitle.trim() || !newMiniDesc.trim()) return;
+    const res = buildCurrentResourceObject();
+    await executePublish(res);
   };
 
   // Seed default Day06 resource into Firestore if not present
@@ -269,9 +439,9 @@ export function LearningResourcesManager({ isEditingEnabled = false, setIsEditin
             <button
               type="button"
               onClick={() => setShowAddModal(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-accent text-accent-contrast px-3.5 py-2 text-xs font-semibold hover:opacity-90 transition-opacity shadow-sm"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-accent text-black font-bold px-3.5 py-2 text-xs hover:brightness-105 transition-all shadow-sm"
             >
-              <Plus size={14} />
+              <Plus size={14} className="text-black" />
               <span>Publier une ressource</span>
             </button>
           )}
@@ -500,7 +670,137 @@ export function LearningResourcesManager({ isEditingEnabled = false, setIsEditin
               </button>
             </div>
 
-            <form onSubmit={handleCreateResource} className="space-y-4 text-xs">
+            <form onSubmit={handleCreateResource} className="space-y-5 text-xs">
+              {/* File Import Section */}
+              <div className="rounded-2xl border-2 border-dashed border-border bg-bg/50 p-4 transition-colors hover:border-accent/60">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold text-text flex items-center gap-1.5">
+                    <FileUp size={15} className="text-accent" />
+                    <span>Importer un document / fichier (PDF, Livre, Code, Image...)</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-muted uppercase">Optionnel mais recommandé</span>
+                </div>
+
+                {uploadedFile ? (
+                  <div className="rounded-xl border border-accent/40 bg-surface p-3 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5 truncate">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent">
+                          {newType === "pdf" ? (
+                            <FileText size={18} />
+                          ) : newType === "image" ? (
+                            <ImageIcon size={18} />
+                          ) : newType === "file" ? (
+                            <FileCode size={18} />
+                          ) : (
+                            <FileCheck size={18} />
+                          )}
+                        </div>
+                        <div className="truncate">
+                          <p className="font-semibold text-text truncate text-xs">{uploadedFile.name}</p>
+                          <p className="text-[11px] text-muted font-mono">
+                            {uploadedFile.sizeFormatted} · Format détecté : {newType.toUpperCase()}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUploadedFile(null);
+                          setFileError(null);
+                        }}
+                        className="px-2 py-1 rounded-lg border border-border text-[11px] text-muted hover:text-red-400 hover:border-red-400/50 transition-colors"
+                      >
+                        Retirer
+                      </button>
+                    </div>
+
+                    {/* Image preview thumbnail if applicable */}
+                    {newType === "image" && uploadedFile.dataUrl && (
+                      <div className="rounded-lg border border-border overflow-hidden max-h-36 bg-bg flex justify-center p-1">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={uploadedFile.dataUrl}
+                          alt="Aperçu miniature"
+                          className="h-32 object-contain rounded"
+                        />
+                      </div>
+                    )}
+
+                    {/* Code / text snippet preview if applicable */}
+                    {uploadedFile.textContent && (
+                      <div className="rounded-lg border border-border bg-bg p-2 text-[10px] font-mono text-muted line-clamp-3">
+                        {uploadedFile.textContent.slice(0, 150)}...
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsDragging(true);
+                    }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDragging(false);
+                      if (e.dataTransfer.files?.[0]) {
+                        handleProcessFile(e.dataTransfer.files[0]);
+                      }
+                    }}
+                    className={`flex flex-col items-center justify-center py-6 px-4 text-center cursor-pointer rounded-xl transition-all ${
+                      isDragging ? "bg-accent/10 border-accent" : "hover:bg-surface/60"
+                    }`}
+                    onClick={() => {
+                      const input = document.getElementById("admin-resource-file-input");
+                      if (input) input.click();
+                    }}
+                  >
+                    <UploadCloud size={30} className="text-muted mb-2 animate-bounce" />
+                    <p className="font-semibold text-text text-xs">
+                      Glissez-déposez votre fichier ici, ou <span className="text-accent underline">parcourez</span>
+                    </p>
+                    <p className="text-[11px] text-muted mt-1">
+                      Formats supportés : PDF, EPUB, Images (PNG, JPG, SVG), Code (C, Python, JS, TS), Texte, ZIP
+                    </p>
+                    <input
+                      id="admin-resource-file-input"
+                      type="file"
+                      accept=".pdf,.epub,.mobi,.png,.jpg,.jpeg,.webp,.svg,.c,.h,.py,.js,.ts,.json,.txt,.md,.zip,.doc,.docx"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) {
+                          handleProcessFile(e.target.files[0]);
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+
+                {fileError && (
+                  <div className="mt-2 flex items-start gap-1.5 p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] leading-relaxed">
+                    <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                    <span>{fileError}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* External download URL (Optionnel) */}
+              <div>
+                <label className="font-medium text-text block mb-1">
+                  Lien de téléchargement externe (optionnel, ex: Google Drive, GitHub Release, Cloud)
+                </label>
+                <input
+                  type="url"
+                  value={newFileUrl}
+                  onChange={(e) => setNewFileUrl(e.target.value)}
+                  placeholder="https://drive.google.com/file/... ou https://github.com/..."
+                  className="w-full rounded-xl border border-border bg-bg px-3.5 py-2 text-text focus:border-accent focus:outline-none"
+                />
+              </div>
+
+              {/* Title & Subtitle */}
               <div>
                 <label className="font-medium text-text block mb-1">
                   Titre de la ressource (affiché en grand sur la cover) *
@@ -523,18 +823,19 @@ export function LearningResourcesManager({ isEditingEnabled = false, setIsEditin
                   type="text"
                   value={newSubtitle}
                   onChange={(e) => setNewSubtitle(e.target.value)}
-                  placeholder="Ex: Guide pratique avec exercices et benchmarks"
+                  placeholder="Ex: Guide pratique avec exercices, schémas et benchmarks"
                   className="w-full rounded-xl border border-border bg-bg px-3.5 py-2 text-text focus:border-accent focus:outline-none"
                 />
               </div>
 
+              {/* Mini Description */}
               <div>
                 <label className="font-medium text-text block mb-1">
-                  Mini description (visible sur la carte) *
+                  Mini description (visible sur la carte catalogue) *
                 </label>
                 <textarea
                   required
-                  rows={3}
+                  rows={2}
                   value={newMiniDesc}
                   onChange={(e) => setNewMiniDesc(e.target.value)}
                   placeholder="Résumé concis de la ressource..."
@@ -542,7 +843,8 @@ export function LearningResourcesManager({ isEditingEnabled = false, setIsEditin
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* Format, Badge, Read Time, Category */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="font-medium text-text block mb-1">Format</label>
                   <select
@@ -568,6 +870,42 @@ export function LearningResourcesManager({ isEditingEnabled = false, setIsEditin
                     className="w-full rounded-xl border border-border bg-bg px-3.5 py-2 text-text focus:border-accent focus:outline-none"
                   />
                 </div>
+
+                <div>
+                  <label className="font-medium text-text block mb-1">Temps de lecture</label>
+                  <input
+                    type="text"
+                    value={newReadTime}
+                    onChange={(e) => setNewReadTime(e.target.value)}
+                    placeholder="Ex: 20 min de lecture"
+                    className="w-full rounded-xl border border-border bg-bg px-3.5 py-2 text-text focus:border-accent focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-medium text-text block mb-1">Catégorie</label>
+                <input
+                  type="text"
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  placeholder="Ex: Programmation C & Algorithmes"
+                  className="w-full rounded-xl border border-border bg-bg px-3.5 py-2 text-text focus:border-accent focus:outline-none"
+                />
+              </div>
+
+              {/* Objectives */}
+              <div>
+                <label className="font-medium text-text block mb-1">
+                  Objectifs d&apos;apprentissage (1 par ligne, optionnel)
+                </label>
+                <textarea
+                  rows={2}
+                  value={newObjectivesText}
+                  onChange={(e) => setNewObjectivesText(e.target.value)}
+                  placeholder="Ex: Comprendre l'allocation dynamique de mémoire&#10;Maîtriser les structures chaînées&#10;Écrire des tests unitaires isolés"
+                  className="w-full rounded-xl border border-border bg-bg px-3.5 py-2 text-text focus:border-accent focus:outline-none"
+                />
               </div>
 
               {/* Cover Color Picker */}
@@ -599,40 +937,77 @@ export function LearningResourcesManager({ isEditingEnabled = false, setIsEditin
                   />
                 </div>
 
-                {/* Live Cover Preview */}
+                {/* Live Cover Preview Mini */}
                 <div
-                  className="rounded-xl p-4 text-white text-xs font-semibold shadow-inner mt-2"
+                  className="rounded-xl p-4 text-white text-xs font-semibold shadow-inner mt-2 transition-colors"
                   style={{ backgroundColor: newCoverColor }}
                 >
                   <div className="flex justify-between items-center text-[10px] text-white/80 font-mono">
                     <span>{newBadge || "BADGE"}</span>
-                    <span>APERÇU LIVE COVER</span>
+                    <span>APERÇU EN DIRECT DE LA COVER</span>
                   </div>
-                  <h4 className="font-display text-base font-bold text-white mt-2 leading-tight">
+                  <h4 className="font-display text-base sm:text-lg font-bold text-white mt-2 leading-tight">
                     {newTitle || "Titre de la ressource en grand sur la cover"}
                   </h4>
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
+              {/* Action Buttons: Cancel, Full Preview, Publish */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-border">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 rounded-xl border border-border text-muted hover:text-text text-xs"
+                  className="px-4 py-2.5 rounded-xl border border-border text-muted hover:text-text text-xs"
                 >
                   Annuler
                 </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-accent text-accent-contrast font-semibold text-xs hover:opacity-90 transition-opacity"
-                >
-                  Publier la ressource
-                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleOpenPreview}
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-accent/40 bg-accent/10 text-accent font-semibold text-xs hover:bg-accent/20 transition-all shadow-sm"
+                  >
+                    <Eye size={14} />
+                    <span>Prévisualisation complète</span>
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={isPublishing}
+                    className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-accent text-black font-bold text-xs hover:brightness-105 transition-all shadow-sm disabled:opacity-50"
+                  >
+                    {isPublishing ? (
+                      <>
+                        <Loader2 size={13} className="animate-spin text-black" />
+                        <span>Publication...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send size={13} className="text-black" />
+                        <span>Publier la ressource</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Complete Preview Modal before publishing */}
+      <ResourcePreviewModal
+        isOpen={showPreviewModal}
+        resource={previewResourceData}
+        onClose={() => setShowPreviewModal(false)}
+        onConfirmPublish={() => {
+          if (previewResourceData) {
+            executePublish(previewResourceData);
+          }
+        }}
+        isPublishing={isPublishing}
+      />
 
       {/* Confirm Deletion Modal */}
       <ConfirmWriteModal

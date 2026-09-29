@@ -1,8 +1,8 @@
 import { MetadataRoute } from "next";
+import { detectDeploymentHost } from "@/lib/cms-meta";
 
-export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://hilarus.dev";
-  const cleanBaseUrl = baseUrl.replace(/\/$/, "");
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  const cleanBaseUrl = await detectDeploymentHost();
 
   return {
     rules: [

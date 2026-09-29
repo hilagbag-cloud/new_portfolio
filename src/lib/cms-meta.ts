@@ -113,10 +113,17 @@ export const defaultSiteMetadata: SiteMetadataConfig = {
     "Hilarus Gbagoule",
     "Hilarus",
     "Gbagoule",
+    "Hilarus Kazak",
     "Hilarus Gbagoule portfolio",
     "Hilarus Gbagoule développeur",
     "Hilarus Gbagoule designer",
     "Hilarus Gbagoule ingénieur IA",
+    "Apprentissage Boosté",
+    "Apprentissage Boosté by Hilarus",
+    "Ressources apprentissage",
+    "Cours informatique gratuit",
+    "Piscine C",
+    "Pointeurs et Tableaux en C",
     "Digital Builder",
     "Product Engineer",
     "Fullstack Engineer",
@@ -126,10 +133,11 @@ export const defaultSiteMetadata: SiteMetadataConfig = {
     "BacPilot fondateur",
     "GB Labs",
     "AdjaStream",
-    "Next.js 14",
+    "Next.js",
     "TypeScript",
     "Gemini API",
     "Bénin Tech",
+    "Développeur Cotonou Bénin",
     "Développeur Afrique de l'Ouest",
     "Design System",
     "PWA Developer",
@@ -241,6 +249,41 @@ export const defaultSiteMetadata: SiteMetadataConfig = {
 };
 
 /**
+ * Resolves deployment fallback URL based on environment variables or Cloud Run preview
+ */
+export function resolveDeploymentFallbackUrl(): string {
+  if (process.env.NEXT_PUBLIC_SITE_URL && !process.env.NEXT_PUBLIC_SITE_URL.includes("hilarus.dev")) {
+    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+  }
+  if (process.env.APP_URL && !process.env.APP_URL.includes("hilarus.dev")) {
+    return process.env.APP_URL.replace(/\/$/, "");
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`.replace(/\/$/, "");
+  }
+  return "https://ais-pre-fy5oi5aebao4wu6vmmue3y-851233606199.europe-west2.run.app";
+}
+
+/**
+ * Dynamically detects deployment host from incoming server request headers or falls back to live runtime domain
+ */
+export async function detectDeploymentHost(): Promise<string> {
+  try {
+    const { headers } = await import("next/headers");
+    const headerList = await headers();
+    const forwardedHost = headerList.get("x-forwarded-host");
+    const host = forwardedHost || headerList.get("host");
+    const proto = headerList.get("x-forwarded-proto") || (host?.includes("localhost") ? "http" : "https");
+    if (host) {
+      return `${proto}://${host}`.replace(/\/$/, "");
+    }
+  } catch {
+    // Non-request context (e.g. client or static build phase)
+  }
+  return resolveDeploymentFallbackUrl();
+}
+
+/**
  * Fetch dynamic site metadata from Firestore with fallback to defaults
  */
 export async function getDynamicSiteMetadata(): Promise<SiteMetadataConfig> {
@@ -259,10 +302,14 @@ export async function getDynamicSiteMetadata(): Promise<SiteMetadataConfig> {
 }
 
 /**
- * Build rich JSON-LD Schema (Person + ProfilePage + WebSite) for Search Engines & AI Agents
+ * Build rich JSON-LD Schema (Person + ProfilePage + WebSite + Course + BreadcrumbList) for Search Engines & AI Agents
  */
-export function buildJsonLdSchema(config: SiteMetadataConfig) {
-  const siteUrl = (config.siteUrl || defaultSiteMetadata.siteUrl!).replace(/\/$/, "");
+export function buildJsonLdSchema(config: SiteMetadataConfig, detectedUrl?: string) {
+  let rawUrl = detectedUrl || config.siteUrl || resolveDeploymentFallbackUrl();
+  if (rawUrl.includes("hilarus.dev") && detectedUrl) {
+    rawUrl = detectedUrl;
+  }
+  const siteUrl = rawUrl.replace(/\/$/, "");
   const authorName = config.author || defaultSiteMetadata.author || "Hilarus Gbagoule";
   const bio =
     config.bioLong ||
@@ -316,7 +363,7 @@ export function buildJsonLdSchema(config: SiteMetadataConfig) {
         alumniOf: [
           {
             "@type": "EducationalOrganization",
-            name: alumni,
+            name: alumni || "Ingénierie & Informatique",
           },
         ],
         knowsAbout,
@@ -358,7 +405,7 @@ export function buildJsonLdSchema(config: SiteMetadataConfig) {
         "@type": "WebSite",
         "@id": `${siteUrl}/#website`,
         url: siteUrl,
-        name: `${authorName} Portfolio`,
+        name: `${authorName} Portfolio & Apprentissage`,
         description: bio,
         publisher: {
           "@id": `${siteUrl}/#person`,
@@ -368,22 +415,65 @@ export function buildJsonLdSchema(config: SiteMetadataConfig) {
         },
         inLanguage: "fr-FR",
       },
+      {
+        "@type": "Course",
+        "@id": `${siteUrl}/learning#course`,
+        name: "Apprentissage Boosté by Hilarus",
+        description: "Plateforme et ressources ouvertes pour apprendre en profondeur n'importe quel sujet : cours C Pool, algorithmes, architecture logicielle, IA et guides d'investigation.",
+        provider: {
+          "@id": `${siteUrl}/#person`,
+        },
+        url: `${siteUrl}/learning`,
+        isAccessibleForFree: true,
+        educationalLevel: "Tous niveaux (chercheurs, étudiants, ingénieurs)",
+        inLanguage: "fr-FR",
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${siteUrl}/#breadcrumbs`,
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Accueil Portfolio",
+            item: siteUrl,
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Apprentissage Boosté by Hilarus",
+            item: `${siteUrl}/learning`,
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: "Formulaire d'Évaluation Chercheurs",
+            item: `${siteUrl}/form`,
+          },
+        ],
+      },
     ],
   };
 }
 
 /**
- * Convert site metadata config into Next.js Metadata object
+ * Convert site metadata config into Next.js Metadata object with auto-detected deployment domain
  */
-export function buildNextMetadata(config: SiteMetadataConfig): Metadata {
+export function buildNextMetadata(config: SiteMetadataConfig, detectedUrl?: string): Metadata {
+  const authorName = config.author || defaultSiteMetadata.author!;
   const title = config.metaTitle || defaultSiteMetadata.metaTitle!;
   const description = config.metaDescription || defaultSiteMetadata.metaDescription!;
-  const siteUrl = config.siteUrl || defaultSiteMetadata.siteUrl!;
-  const cleanUrl = siteUrl.startsWith("http") ? siteUrl : `https://${siteUrl}`;
+  
+  // Clean live deployment URL resolution
+  let liveUrl = detectedUrl || config.siteUrl || resolveDeploymentFallbackUrl();
+  if (liveUrl.includes("hilarus.dev") && detectedUrl) {
+    liveUrl = detectedUrl;
+  }
+  const cleanUrl = liveUrl.startsWith("http") ? liveUrl.replace(/\/$/, "") : `https://${liveUrl}`.replace(/\/$/, "");
+
   const ogTitle = config.ogTitle || title;
   const ogDesc = config.ogDescription || description;
   const ogImg = config.ogImage || defaultSiteMetadata.ogImage!;
-  const authorName = config.author || defaultSiteMetadata.author!;
 
   const shouldIndex = config.robotsIndex !== false;
   const shouldFollow = config.robotsFollow !== false;
@@ -411,11 +501,11 @@ export function buildNextMetadata(config: SiteMetadataConfig): Metadata {
     ],
     creator: authorName,
     publisher: authorName,
-    applicationName: `${authorName} Portfolio`,
+    applicationName: `${authorName} Portfolio & Apprentissage`,
     generator: "Next.js",
     metadataBase: new URL(cleanUrl),
     alternates: {
-      canonical: config.canonicalUrl || cleanUrl,
+      canonical: cleanUrl,
     },
     icons: {
       icon: [
@@ -433,7 +523,7 @@ export function buildNextMetadata(config: SiteMetadataConfig): Metadata {
       title: ogTitle,
       description: ogDesc,
       url: cleanUrl,
-      siteName: `${authorName} — Digital Builder`,
+      siteName: `${authorName} — Digital Builder & Apprentissage Boosté`,
       images: [
         {
           url: ogImg,
@@ -457,6 +547,7 @@ export function buildNextMetadata(config: SiteMetadataConfig): Metadata {
     robots: {
       index: shouldIndex,
       follow: shouldFollow,
+      nocache: false,
       googleBot: {
         index: shouldIndex,
         follow: shouldFollow,
@@ -466,13 +557,13 @@ export function buildNextMetadata(config: SiteMetadataConfig): Metadata {
       },
     },
     category: "technology",
-    classification: "Portfolio, Software Engineering, AI & Design",
+    classification: "Portfolio, Software Engineering, AI, Education & Apprentissage Boosté",
     other: {
       "profile:first_name": config.givenName || "Hilarus",
       "profile:last_name": config.familyName || "Gbagoule",
       "profile:username": "hilarus",
       "profile:gender": "male",
-      "ai-content-declaration": "portfolio-profile",
+      "ai-content-declaration": "portfolio-learning-profile",
       "llms-txt": `${cleanUrl}/llms.txt`,
     },
   };
