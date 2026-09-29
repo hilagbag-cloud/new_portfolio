@@ -75,6 +75,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 1.0,
     },
+    {
+      url: `${cleanBaseUrl}/learning`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
+      url: `${cleanBaseUrl}/form`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
     ...publishedProjects.map((p) => ({
       url: `${cleanBaseUrl}/projects/${p.id}`,
       lastModified: p.updatedAt ? new Date(p.updatedAt) : new Date(),

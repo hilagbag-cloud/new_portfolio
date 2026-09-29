@@ -6,12 +6,14 @@ export const site = {
   nav: {
     brand: "HILARUS.",
     links: [
-      { label: "Work", href: "#selected-work" },
-      { label: "Journey", href: "#journey" },
-      { label: "Lab", href: "#lab" },
-      { label: "About", href: "#about" },
+      { label: "Work", href: "/#selected-work" },
+      { label: "Journey", href: "/#journey" },
+      { label: "Lab", href: "/#lab" },
+      { label: "About", href: "/#about" },
+      { label: "Apprentissage", href: "/learning" },
+      { label: "Formulaire", href: "/form" },
     ],
-    contact: { label: "Let's build", href: "#contact" },
+    contact: { label: "Let's build", href: "/#contact" },
   },
   hero: {
     greeting: "Hey — I'm",

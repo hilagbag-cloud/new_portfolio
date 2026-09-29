@@ -86,6 +86,42 @@
         "updatedAt": { "type": "string" }
       },
       "required": ["id"]
+    },
+    "surveyResponse": {
+      "title": "Survey Response",
+      "description": "Anonymous questionnaire responses for Apprentissage Boosté program",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "q1_interest": { "type": "string" },
+        "q2_online_reading": { "type": "string" },
+        "q3_continue_learning": { "type": "string" },
+        "submittedAt": { "type": "string" }
+      },
+      "required": ["q1_interest", "q2_online_reading", "q3_continue_learning", "submittedAt"]
+    },
+    "learningResource": {
+      "title": "Learning Resource",
+      "description": "Educational resource item published in Apprentissage Boosté",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "miniDescription": { "type": "string" },
+        "category": { "type": "string" },
+        "type": { "type": "string" },
+        "coverColor": { "type": "string" },
+        "coverTextColor": { "type": "string" },
+        "tags": { "type": "array" },
+        "downloadCount": { "type": "number" },
+        "viewsCount": { "type": "number" },
+        "content": { "type": "string" },
+        "published": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "title", "miniDescription", "published"]
     }
   },
   "firestore": {
@@ -108,6 +144,14 @@
     "/siteConfig/{configId}": {
       "entity": "siteConfig",
       "description": "Global site configurations"
+    },
+    "/surveyResponses/{responseId}": {
+      "entity": "surveyResponse",
+      "description": "Anonymous survey responses from researchers"
+    },
+    "/learningResources/{resourceId}": {
+      "entity": "learningResource",
+      "description": "Published educational resources in Apprentissage Boosté"
     }
   }
 }

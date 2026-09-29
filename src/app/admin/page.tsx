@@ -9,6 +9,8 @@ import { ProjectsManager } from "@/components/Admin/ProjectsManager";
 import { MilestonesManager } from "@/components/Admin/MilestonesManager";
 import { MessagesManager } from "@/components/Admin/MessagesManager";
 import { SiteSettingsManager } from "@/components/Admin/SiteSettingsManager";
+import { SurveyResponsesManager } from "@/components/Admin/SurveyResponsesManager";
+import { LearningResourcesManager } from "@/components/Admin/LearningResourcesManager";
 import { ThemeToggle } from "@/components/Theme/ThemeToggle";
 import {
   BarChart3,
@@ -21,9 +23,11 @@ import {
   Shield,
   Layers,
   Sparkles,
+  GraduationCap,
+  BookOpen,
 } from "lucide-react";
 
-type Tab = "analytics" | "projects" | "milestones" | "messages" | "settings";
+type Tab = "analytics" | "projects" | "milestones" | "messages" | "learning" | "survey" | "settings";
 
 export default function AdminPage() {
   const { user, loading, signOut } = useAuth();
@@ -51,6 +55,8 @@ export default function AdminPage() {
     { id: "projects" as Tab, label: "Projets & Travaux", icon: FolderKanban },
     { id: "milestones" as Tab, label: "Trajectoire (Milestones)", icon: Compass },
     { id: "messages" as Tab, label: "Boîte de réception", icon: MessageSquare },
+    { id: "learning" as Tab, label: "Ressources Boostées (/learning)", icon: BookOpen },
+    { id: "survey" as Tab, label: "Programme Boosté (/form)", icon: GraduationCap },
     { id: "settings" as Tab, label: "Paramètres du Site", icon: Settings },
   ];
 
@@ -165,6 +171,15 @@ export default function AdminPage() {
             />
           )}
           {activeTab === "messages" && <MessagesManager />}
+          {activeTab === "learning" && (
+            <LearningResourcesManager
+              isEditingEnabled={isEditingEnabled}
+              setIsEditingEnabled={setIsEditingEnabled}
+            />
+          )}
+          {activeTab === "survey" && (
+            <SurveyResponsesManager isEditingEnabled={isEditingEnabled} />
+          )}
           {activeTab === "settings" && (
             <SiteSettingsManager
               isEditingEnabled={isEditingEnabled}

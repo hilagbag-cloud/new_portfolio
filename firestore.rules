@@ -34,5 +34,22 @@ service cloud.firestore {
       allow read: if true;
       allow write: if request.auth != null;
     }
+
+    // Survey responses: anyone can submit anonymous answers without PII, only authenticated admins can read/delete
+    match /surveyResponses/{responseId} {
+      allow create: if request.resource.data.q1_interest is string
+                    && request.resource.data.q2_online_reading is string
+                    && request.resource.data.q3_continue_learning is string
+                    && request.resource.data.submittedAt is string;
+      allow read, delete: if request.auth != null;
+    }
+
+    // Learning resources: public read, admin write, public can increment view/download stats
+    match /learningResources/{resourceId} {
+      allow read: if true;
+      allow create, delete: if request.auth != null;
+      allow update: if request.auth != null
+                    || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewsCount', 'downloadCount']));
+    }
   }
 }
