@@ -30,13 +30,20 @@ import {
   CheckCircle2,
   ExternalLink,
   X,
+  FileUp,
+  QrCode,
 } from "lucide-react";
+import { PWAInstallButton } from "@/components/PWA/PWAInstallButton";
+import { QuickPublishWidget } from "@/components/Learning/QuickPublishWidget";
+import { ResourceQrCodeModal } from "@/components/Learning/ResourceQrCodeModal";
+import { fetchLargeFileChunks } from "@/lib/large-file-storage";
 
 export default function LearningPage() {
   const [resources, setResources] = useState<LearningResource[]>(defaultLearningResources);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [activeResource, setActiveResource] = useState<LearningResource | null>(null);
+  const [qrResource, setQrResource] = useState<LearningResource | null>(null);
 
   // Track visit on /learning
   useEffect(() => {
@@ -83,12 +90,43 @@ export default function LearningPage() {
     setActiveResource(res);
   };
 
+  // Auto-open resource if accessed via QR code link (?res=...) or hash anchor
+  useEffect(() => {
+    if (typeof window === "undefined" || resources.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const targetId = params.get("res") || window.location.hash.replace("#", "");
+    if (targetId) {
+      const found = resources.find((r) => r.id === targetId);
+      if (found) {
+        handleOpenResource(found);
+      }
+    }
+  }, [resources]);
+
   const handleQuickDownload = (e: React.MouseEvent, res: LearningResource) => {
     e.stopPropagation();
     trackResourceDownload(res.id, res.downloadCount);
     setResources((prev) =>
       prev.map((r) => (r.id === res.id ? { ...r, downloadCount: (r.downloadCount || 0) + 1 } : r))
     );
+
+    // If file is stored in chunks (for large files up to 50MB)
+    if (res.hasChunks) {
+      fetchLargeFileChunks(res.id)
+        .then((fullDataUrl) => {
+          const a = document.createElement("a");
+          a.href = fullDataUrl;
+          a.download = res.fileName || `${res.id}.${res.type === "pdf" ? "pdf" : "dat"}`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        })
+        .catch((err) => {
+          console.error("Chunked download error:", err);
+          alert("Erreur lors du téléchargement du fichier volumineux.");
+        });
+      return;
+    }
 
     // If an actual uploaded file exists, download it directly
     if (res.fileDataUrl) {
@@ -189,13 +227,24 @@ export default function LearningPage() {
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <PWAInstallButton />
+
+            <Link
+              href="/admin?tab=learning&action=publish"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent hover:text-black transition-all shadow-sm"
+              title="Accéder à la publication de ressources"
+            >
+              <FileUp size={13} />
+              <span className="hidden sm:inline">Publier</span>
+            </Link>
+
             <Link
               href="/form"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/20 transition-colors"
+              className="hidden md:inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted hover:text-text hover:border-accent/40 transition-colors"
             >
               <Sparkles size={13} />
-              <span>Avis Chercheurs (/form)</span>
+              <span>Avis (/form)</span>
             </Link>
 
             <ThemeToggle variant="compact" />
@@ -335,6 +384,9 @@ export default function LearningPage() {
           </div>
         </div>
 
+        {/* Quick Publish Widget (Drag & Drop PDF or document to publish up to 50MB) */}
+        <QuickPublishWidget />
+
         {/* Resources Grid */}
         {filteredResources.length === 0 ? (
           <div className="rounded-3xl border border-border bg-surface/50 p-12 text-center flex flex-col items-center gap-3">
@@ -425,6 +477,18 @@ export default function LearningPage() {
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setQrResource(res);
+                        }}
+                        className="flex h-8 w-8 items-center justify-center rounded-xl border border-border bg-bg/80 text-muted hover:border-accent hover:text-accent transition-colors"
+                        title="Partager par QR Code"
+                      >
+                        <QrCode size={14} />
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={(e) => handleQuickDownload(e, res)}
                         className="flex h-8 w-8 items-center justify-center rounded-xl border border-border bg-bg/80 text-muted hover:border-accent hover:text-accent transition-colors"
                         title="Téléchargement direct"
@@ -481,6 +545,13 @@ export default function LearningPage() {
           }}
         />
       )}
+
+      {/* Branded QR Code Sharing Modal */}
+      <ResourceQrCodeModal
+        resource={qrResource}
+        isOpen={!!qrResource}
+        onClose={() => setQrResource(null)}
+      />
 
       {/* Footer */}
       <footer className="border-t border-border/60 bg-surface/40 py-6 text-center text-xs text-muted mt-auto">

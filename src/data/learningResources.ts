@@ -56,6 +56,8 @@ export interface LearningResource {
   fileDataUrl?: string;
   fileUrl?: string;
   fileContentText?: string;
+  hasChunks?: boolean;
+  chunksCount?: number;
 }
 
 export const defaultLearningResources: LearningResource[] = [

@@ -36,10 +36,14 @@ import {
   AlertTriangle,
   Send,
   Loader2,
+  QrCode,
 } from "lucide-react";
 import { defaultLearningResources, type LearningResource } from "@/data/learningResources";
 import { ConfirmWriteModal, type PendingFirestoreWrite } from "./ConfirmWriteModal";
 import { ResourcePreviewModal } from "./ResourcePreviewModal";
+import { ResourceQrCodeModal } from "@/components/Learning/ResourceQrCodeModal";
+import { saveLargeFileChunks, deleteLargeFileChunks, MAX_FILE_SIZE } from "@/lib/large-file-storage";
+import { generateResourceDetailsWithAI } from "@/lib/ai-resource-generator";
 
 const PRESET_COLORS = [
   { name: "Bleu Océan", hex: "#0f2b48" },
@@ -95,6 +99,41 @@ export function LearningResourcesManager({ isEditingEnabled = false, setIsEditin
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewResourceData, setPreviewResourceData] = useState<LearningResource | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [uploadStatusText, setUploadStatusText] = useState<string | null>(null);
+  const [qrResource, setQrResource] = useState<LearningResource | null>(null);
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [aiStatus, setAiStatus] = useState<{
+    type: "success" | "warning" | "info";
+    message: string;
+  } | null>(null);
+
+  // Check for staged resource passed from the Quick Publish Widget
+  useEffect(() => {
+    try {
+      const stagedRaw = sessionStorage.getItem("staged_learning_resource_file");
+      if (stagedRaw) {
+        const staged = JSON.parse(stagedRaw);
+        if (staged.uploadedFile) {
+          setUploadedFile(staged.uploadedFile);
+        }
+        if (staged.title) setNewTitle(staged.title);
+        if (staged.subtitle) setNewSubtitle(staged.subtitle);
+        if (staged.miniDescription) setNewMiniDesc(staged.miniDescription);
+        if (staged.category) setNewCategory(staged.category);
+        if (staged.type) setNewType(staged.type);
+        if (staged.badge) setNewBadge(staged.badge);
+        if (staged.readTime) setNewReadTime(staged.readTime);
+        if (staged.coverColor) setNewCoverColor(staged.coverColor);
+        if (staged.objectivesText) setNewObjectivesText(staged.objectivesText);
+        if (staged.detailedContent) setNewDetailedContent(staged.detailedContent);
+        if (setIsEditingEnabled) setIsEditingEnabled(true);
+        setShowAddModal(true);
+        sessionStorage.removeItem("staged_learning_resource_file");
+      }
+    } catch (e) {
+      console.debug("Staged file load note:", e);
+    }
+  }, [setIsEditingEnabled]);
 
   // Sync resources from Firestore
   useEffect(() => {
@@ -192,11 +231,12 @@ export function LearningResourcesManager({ isEditingEnabled = false, setIsEditin
     const sizeFormatted = formatBytes(file.size);
     const ext = file.name.split(".").pop()?.toLowerCase() || "";
 
-    // Check size against Firestore ~1MB document limit
-    if (file.size > 850 * 1024) {
+    // Check size against 50 MB limit
+    if (file.size > MAX_FILE_SIZE) {
       setFileError(
-        "Ce fichier dépasse 850 Ko. Pour garantir la sauvegarde sans dépasser la limite de 1 Mo par document Firestore, son descriptif sera enregistré. Vous pouvez aussi renseigner un lien de téléchargement direct (Drive, GitHub, Cloud) ci-dessous."
+        `Ce fichier fait ${sizeFormatted}. La taille maximale acceptée pour l'import direct est de 50 Mo. Pour les fichiers encore plus volumineux, vous pouvez renseigner un lien de téléchargement direct (Google Drive, GitHub, Cloud) ci-dessous.`
       );
+      return;
     }
 
     // Auto-fill title if empty
@@ -245,7 +285,7 @@ export function LearningResourcesManager({ isEditingEnabled = false, setIsEditin
       };
       reader.readAsText(file);
     } else {
-      // PDF, Images, Binaries
+      // PDF, Images, Binaries up to 50MB
       reader.onload = (e) => {
         const dataUrl = e.target?.result as string;
         setUploadedFile({
@@ -253,11 +293,68 @@ export function LearningResourcesManager({ isEditingEnabled = false, setIsEditin
           size: file.size,
           sizeFormatted,
           type: file.type || ext,
-          // Only save full base64 if under 850 KB to protect Firestore doc limit
-          dataUrl: file.size <= 850 * 1024 ? dataUrl : undefined,
+          dataUrl,
         });
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  // Auto-generate resource details with AI (Gemini 3.8 Flash + Resilient Quota Fallback)
+  const handleAiAutoFill = async () => {
+    setIsAiGenerating(true);
+    setAiStatus(null);
+    try {
+      const res = await generateResourceDetailsWithAI({
+        filename: uploadedFile?.name,
+        fileType: uploadedFile?.type,
+        textContent: uploadedFile?.textContent || newDetailedContent || newMiniDesc,
+        existingTitle: newTitle,
+        existingNotes: newSubtitle || newMiniDesc,
+      });
+
+      if (res.data) {
+        setNewTitle(res.data.title);
+        setNewSubtitle(res.data.subtitle);
+        setNewMiniDesc(res.data.miniDescription);
+        setNewCategory(res.data.category);
+        setNewType(res.data.type);
+        setNewBadge(res.data.badge);
+        setNewReadTime(res.data.readTime);
+        setNewCoverColor(res.data.coverColor);
+        if (res.data.objectives && res.data.objectives.length > 0) {
+          setNewObjectivesText(res.data.objectives.join("\n"));
+        }
+        if (res.data.detailedSummary) {
+          setNewDetailedContent(res.data.detailedSummary);
+        }
+      }
+
+      if (res.source === "gemini") {
+        setAiStatus({
+          type: "success",
+          message: "✨ Fiche générée avec succès par Gemini 3.8 Flash !",
+        });
+      } else if (res.quotaExceeded) {
+        setAiStatus({
+          type: "warning",
+          message:
+            "⚡ Quota API Gemini temporairement atteint : l'analyseur heuristique intelligent a structuré votre ressource avec succès.",
+        });
+      } else {
+        setAiStatus({
+          type: "info",
+          message: res.message || "Fiche générée avec succès.",
+        });
+      }
+    } catch (err: any) {
+      console.error("AI auto fill error:", err);
+      setAiStatus({
+        type: "warning",
+        message: "Erreur lors de la génération IA, les valeurs existantes ont été conservées.",
+      });
+    } finally {
+      setIsAiGenerating(false);
     }
   };
 
@@ -333,11 +430,36 @@ export function LearningResourcesManager({ isEditingEnabled = false, setIsEditin
     setShowPreviewModal(true);
   };
 
-  // Core execution of resource publication
+  // Core execution of resource publication with large file chunking support
   const executePublish = async (resourceToPublish: LearningResource) => {
     setIsPublishing(true);
+    setUploadStatusText("Préparation de la publication...");
     try {
-      await setDoc(doc(db, "learningResources", resourceToPublish.id), resourceToPublish);
+      const resourceId = resourceToPublish.id;
+
+      // Handle large files: if file dataUrl exists and is > 600 KB, save as chunks in subcollection
+      if (resourceToPublish.fileDataUrl && resourceToPublish.fileDataUrl.length > 600 * 1024) {
+        setUploadStatusText("Découpage et enregistrement sécurisé du fichier volumineux (50 Mo max)...");
+        const { chunksCount } = await saveLargeFileChunks(
+          resourceId,
+          resourceToPublish.fileDataUrl,
+          (prog) => {
+            setUploadStatusText(`${prog.status} (${prog.percentage}%)`);
+          }
+        );
+
+        // In main doc, omit fileDataUrl and flag hasChunks: true
+        const docPayload: LearningResource = {
+          ...resourceToPublish,
+          fileDataUrl: undefined,
+          hasChunks: true,
+          chunksCount,
+        };
+        await setDoc(doc(db, "learningResources", resourceId), docPayload);
+      } else {
+        await setDoc(doc(db, "learningResources", resourceId), resourceToPublish);
+      }
+
       setShowAddModal(false);
       setShowPreviewModal(false);
       setPreviewResourceData(null);
@@ -350,11 +472,13 @@ export function LearningResourcesManager({ isEditingEnabled = false, setIsEditin
       setNewFileUrl("");
       setUploadedFile(null);
       setFileError(null);
+      setUploadStatusText(null);
     } catch (err) {
       console.error("Erreur lors de la création de la ressource :", err);
       alert("Erreur lors de l'enregistrement sur Firestore. Merci de vérifier la taille de votre document.");
     } finally {
       setIsPublishing(false);
+      setUploadStatusText(null);
     }
   };
 
@@ -388,6 +512,9 @@ export function LearningResourcesManager({ isEditingEnabled = false, setIsEditin
       actionType: "deleteDoc",
       onConfirm: async () => {
         try {
+          if (res.hasChunks) {
+            await deleteLargeFileChunks(res.id);
+          }
           await deleteDoc(doc(db, "learningResources", res.id));
         } catch (err) {
           console.error(err);
@@ -633,6 +760,16 @@ export function LearningResourcesManager({ isEditingEnabled = false, setIsEditin
                           <span>Voir</span>
                         </Link>
 
+                        <button
+                          type="button"
+                          onClick={() => setQrResource(res)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-border bg-surface px-2.5 py-1 text-[11px] text-muted hover:text-accent hover:border-accent transition-colors"
+                          title="Générer & Télécharger le QR Code"
+                        >
+                          <QrCode size={12} />
+                          <span>QR Code</span>
+                        </button>
+
                         {isEditingEnabled && (
                           <button
                             type="button"
@@ -671,6 +808,72 @@ export function LearningResourcesManager({ isEditingEnabled = false, setIsEditin
             </div>
 
             <form onSubmit={handleCreateResource} className="space-y-5 text-xs">
+              {/* AI Auto-Fill Banner with Quota Management */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-2xl border border-accent/40 bg-accent/10 p-3.5 shadow-sm">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-accent text-black font-bold">
+                    <Sparkles size={16} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-semibold text-text text-xs">
+                        Génération Automatique IA (Gemini 3.8 Flash)
+                      </span>
+                      <span className="rounded bg-accent/20 px-1.5 py-0.5 text-[9px] font-mono text-accent font-bold">
+                        Anti-Quota Block
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted truncate">
+                      {uploadedFile
+                        ? `Génère le titre, résumé, objectifs et badge à partir de « ${uploadedFile.name} »`
+                        : "Analysez votre document ou vos notes pour pré-remplir instantanément la fiche"}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleAiAutoFill}
+                  disabled={isAiGenerating}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-accent text-black font-bold px-3.5 py-2 text-xs hover:brightness-105 transition-all shadow-sm shrink-0 disabled:opacity-60"
+                >
+                  {isAiGenerating ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin text-black" />
+                      <span>Analyse du document...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={13} className="text-black" />
+                      <span>Générer avec l&apos;IA</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Status Message if AI was run */}
+              {aiStatus && (
+                <div
+                  className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 transition-all ${
+                    aiStatus.type === "success"
+                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                      : aiStatus.type === "warning"
+                      ? "border-amber-500/40 bg-amber-500/10 text-amber-300"
+                      : "border-blue-500/40 bg-blue-500/10 text-blue-300"
+                  }`}
+                >
+                  <Sparkles size={15} className="shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="font-semibold">{aiStatus.message}</p>
+                    {aiStatus.type === "warning" && (
+                      <p className="text-[11px] opacity-80">
+                        Votre publication n&apos;est pas ralentie. Vous pouvez librement modifier ou valider chaque champ ci-dessous.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* File Import Section */}
               <div className="rounded-2xl border-2 border-dashed border-border bg-bg/50 p-4 transition-colors hover:border-accent/60">
                 <div className="flex items-center justify-between mb-2">
@@ -980,7 +1183,7 @@ export function LearningResourcesManager({ isEditingEnabled = false, setIsEditin
                     {isPublishing ? (
                       <>
                         <Loader2 size={13} className="animate-spin text-black" />
-                        <span>Publication...</span>
+                        <span>{uploadStatusText || "Publication..."}</span>
                       </>
                     ) : (
                       <>
@@ -1017,6 +1220,13 @@ export function LearningResourcesManager({ isEditingEnabled = false, setIsEditin
           setIsConfirmModalOpen(false);
           setPendingWrite(null);
         }}
+      />
+
+      {/* Branded QR Code Modal */}
+      <ResourceQrCodeModal
+        resource={qrResource}
+        isOpen={!!qrResource}
+        onClose={() => setQrResource(null)}
       />
     </div>
   );

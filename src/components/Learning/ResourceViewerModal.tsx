@@ -17,9 +17,12 @@ import {
   FileCode,
   Image as ImageIcon,
   FileCheck,
+  QrCode,
 } from "lucide-react";
 import type { LearningResource } from "@/data/learningResources";
 import { trackResourceDownload } from "@/lib/learning-analytics";
+import { fetchLargeFileChunks } from "@/lib/large-file-storage";
+import { ResourceQrCodeModal } from "./ResourceQrCodeModal";
 
 interface Props {
   resource: LearningResource | null;
@@ -31,6 +34,9 @@ export function ResourceViewerModal({ resource, onClose, onDownloaded }: Props) 
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
   const [revealedAnswers, setRevealedAnswers] = useState<Record<string, boolean>>({});
+  const [isDownloadingLargeFile, setIsDownloadingLargeFile] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState<string | null>(null);
+  const [showQrModal, setShowQrModal] = useState(false);
 
   if (!resource) return null;
 
@@ -45,9 +51,33 @@ export function ResourceViewerModal({ resource, onClose, onDownloaded }: Props) 
     setRevealedAnswers((prev) => ({ ...prev, [quizId]: true }));
   };
 
-  const handleDownloadDocument = () => {
+  const handleDownloadDocument = async () => {
     trackResourceDownload(resource.id, resource.downloadCount);
     if (onDownloaded) onDownloaded();
+
+    // 0. Chunked download for large files (up to 50MB)
+    if (resource.hasChunks) {
+      setIsDownloadingLargeFile(true);
+      setDownloadProgress("Reconstitution du fichier volumineux...");
+      try {
+        const fullDataUrl = await fetchLargeFileChunks(resource.id, (prog) => {
+          setDownloadProgress(`${prog.status} (${prog.percentage}%)`);
+        });
+        const a = document.createElement("a");
+        a.href = fullDataUrl;
+        a.download = resource.fileName || `${resource.id}.${resource.type === "pdf" ? "pdf" : "dat"}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (err) {
+        console.error("Error fetching large file:", err);
+        alert("Erreur lors de la reconstitution du fichier volumineux.");
+      } finally {
+        setIsDownloadingLargeFile(false);
+        setDownloadProgress(null);
+      }
+      return;
+    }
 
     // 1. Direct download if an actual uploaded file (PDF, code, image, etc.) is attached
     if (resource.fileDataUrl) {
@@ -149,6 +179,16 @@ export function ResourceViewerModal({ resource, onClose, onDownloaded }: Props) 
             <div className="flex items-center gap-2">
               <button
                 type="button"
+                onClick={() => setShowQrModal(true)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-bg/80 text-muted hover:border-accent hover:text-accent px-3 py-1.5 text-xs font-semibold transition-colors"
+                title="Partager par QR Code"
+              >
+                <QrCode size={14} />
+                <span className="hidden sm:inline">QR Code</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={handleDownloadDocument}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-accent text-black font-bold px-3.5 py-1.5 text-xs hover:brightness-105 transition-all shadow-sm"
               >
@@ -239,14 +279,36 @@ export function ResourceViewerModal({ resource, onClose, onDownloaded }: Props) 
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleDownloadDocument}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent text-black font-bold px-4 py-2 text-xs hover:brightness-105 transition-all shadow-sm shrink-0"
-                  >
-                    <Download size={14} className="text-black" />
-                    <span>Télécharger ce fichier</span>
-                  </button>
+                  <div className="flex items-center gap-2 flex-wrap shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setShowQrModal(true)}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-border bg-bg px-3 py-2 text-xs font-semibold text-muted hover:border-accent hover:text-accent transition-colors"
+                      title="Partager par QR Code"
+                    >
+                      <QrCode size={13} />
+                      <span>QR Code</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleDownloadDocument}
+                      disabled={isDownloadingLargeFile}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent text-black font-bold px-4 py-2 text-xs hover:brightness-105 transition-all shadow-sm shrink-0 disabled:opacity-80"
+                    >
+                      {isDownloadingLargeFile ? (
+                        <>
+                          <span className="h-3 w-3 animate-spin rounded-full border-2 border-black border-t-transparent" />
+                          <span>{downloadProgress || "Chargement..."}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download size={14} className="text-black" />
+                          <span>Télécharger ce fichier</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Visual Preview if Image */}
@@ -506,6 +568,13 @@ export function ResourceViewerModal({ resource, onClose, onDownloaded }: Props) 
           </div>
         </motion.div>
       </div>
+
+      {/* Branded QR Code Sharing Modal */}
+      <ResourceQrCodeModal
+        resource={resource}
+        isOpen={showQrModal}
+        onClose={() => setShowQrModal(false)}
+      />
     </AnimatePresence>
   );
 }

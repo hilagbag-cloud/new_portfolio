@@ -6,6 +6,7 @@ import { ArrowUpRight, Menu, X, Sparkles } from "lucide-react";
 import { site } from "@/data/site";
 import { cn } from "@/lib/cn";
 import { ThemeToggle } from "@/components/Theme/ThemeToggle";
+import { PWAInstallButton } from "@/components/PWA/PWAInstallButton";
 
 export function Navigation() {
   const [scrolled, setScrolled] = useState(false);
@@ -60,13 +61,16 @@ export function Navigation() {
             ))}
           </ul>
 
-          <a
-            href={site.nav.contact.href}
-            className="hidden md:inline-flex btn-skew focus-ring py-2 px-4 text-xs"
-          >
-            <span>{site.nav.contact.label.toUpperCase()}</span>
-            <ArrowUpRight size={14} strokeWidth={2} />
-          </a>
+          <div className="hidden md:flex items-center gap-3">
+            <PWAInstallButton />
+            <a
+              href={site.nav.contact.href}
+              className="btn-skew focus-ring py-2 px-4 text-xs"
+            >
+              <span>{site.nav.contact.label.toUpperCase()}</span>
+              <ArrowUpRight size={14} strokeWidth={2} />
+            </a>
+          </div>
 
           <button
             type="button"
@@ -143,6 +147,11 @@ export function Navigation() {
               transition={{ delay: 0.25, duration: 0.3 }}
               className="pt-8 border-t border-border flex flex-col gap-4 w-full"
             >
+              <div className="flex items-center justify-between">
+                <span className="eyebrow text-xs text-muted">Application</span>
+                <PWAInstallButton />
+              </div>
+
               <div className="flex items-center justify-between">
                 <span className="eyebrow text-xs text-muted">Mode Visuel</span>
                 <ThemeToggle variant="compact" />

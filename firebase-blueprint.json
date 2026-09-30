@@ -152,6 +152,10 @@
     "/learningResources/{resourceId}": {
       "entity": "learningResource",
       "description": "Published educational resources in Apprentissage Boosté"
+    },
+    "/learningResources/{resourceId}/chunks/{chunkId}": {
+      "entity": "resourceChunk",
+      "description": "Chunked binary segments for large files (PDFs, courses, ebooks up to 50MB)"
     }
   }
 }

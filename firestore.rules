@@ -50,6 +50,12 @@ service cloud.firestore {
       allow create, delete: if request.auth != null;
       allow update: if request.auth != null
                     || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewsCount', 'downloadCount']));
+
+      // Chunks for large files (PDFs, courses, ebooks, archives)
+      match /chunks/{chunkId} {
+        allow read: if true;
+        allow write: if request.auth != null;
+      }
     }
   }
 }

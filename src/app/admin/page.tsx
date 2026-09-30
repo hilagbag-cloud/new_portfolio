@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { AdminLogin } from "@/components/Admin/AdminLogin";
@@ -33,6 +33,25 @@ export default function AdminPage() {
   const { user, loading, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("analytics");
   const [isEditingEnabled, setIsEditingEnabled] = useState(false);
+
+  // Check URL query parameters and staged file triggers
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab") as Tab | null;
+      if (tabParam && ["analytics", "projects", "milestones", "messages", "learning", "survey", "settings"].includes(tabParam)) {
+        setActiveTab(tabParam);
+      }
+      if (
+        params.get("action") === "publish" ||
+        params.get("action") === "new" ||
+        sessionStorage.getItem("staged_learning_resource_file")
+      ) {
+        setActiveTab("learning");
+        setIsEditingEnabled(true);
+      }
+    }
+  }, []);
 
   if (loading) {
     return (

@@ -39,6 +39,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildNextMetadata(dynamicConfig, detectedUrl);
 }
 
+import { PWAProvider } from "@/components/PWA/PWAProvider";
+
 export default async function RootLayout({
   children,
 }: {
@@ -81,8 +83,10 @@ export default async function RootLayout({
       <body className="font-body antialiased selection:bg-accent selection:text-bg">
         <AuthProvider>
           <ThemeProvider>
-            <AnalyticsTracker />
-            {children}
+            <PWAProvider>
+              <AnalyticsTracker />
+              {children}
+            </PWAProvider>
           </ThemeProvider>
         </AuthProvider>
       </body>
